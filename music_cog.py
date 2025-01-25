@@ -274,10 +274,14 @@ class MusicBot(commands.Cog):
             return
 
         if 종류 == "꽃도박":
+            await interaction.response.send_message("꽃이 10개 이하면 배당금을 모두 잃습니다.")
             grid = [[random.choice(["🌸", "⬜"]) for _ in range(5)] for _ in range(5)]
             flower_count = sum(row.count("🌸") for row in grid)
-            multiplier = 1 + flower_count * 0.1
-            winnings = int(금액 * multiplier)
+            if flower_count > 10 :
+                multiplier = 1 + flower_count * 0.1
+                winnings = int(금액 * multiplier)
+            else :
+                winnings = 0
             user_balances[user_id] += winnings - 금액
             save_balances()
 
@@ -287,6 +291,7 @@ class MusicBot(commands.Cog):
             )
 
         elif 종류 == "홀짝":
+            await interaction.response.send_message("배당금의 홀짝에 따라 플레이어의 선택이 결정됩니다.")
             outcome = random.choice(["홀수", "짝수"])
             user_choice = "홀수" if 금액 % 2 else "짝수"
 
@@ -303,110 +308,8 @@ class MusicBot(commands.Cog):
             await interaction.response.send_message(
                 f"🎲 홀짝 결과: {outcome}\n💰 {result}! 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
             )
-
-        elif 종류 == "블랙잭":
-            user_id = str(interaction.user.id)
-        
-            if user_id in blackjack_games:
-                await interaction.response.send_message("🔴 이미 진행 중인 블랙잭 게임이 있습니다.", ephemeral=True)
-                return
-        
-            # 새 게임 상태 초기화
-            deck = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11] * 4
-            random.shuffle(deck)
-            blackjack_games[user_id] = {
-                "deck": deck,
-                "player_hand": [deck.pop(), deck.pop()],
-                "dealer_hand": [deck.pop(), deck.pop()],
-                "bet": 금액
-            }
-        
-            await interaction.response.send_message("🃏 블랙잭 게임이 시작되었습니다. 카드를 확인하세요!")
-            await self.blackjack_turn(interaction, user_id)
-
         else:
-            await interaction.response.send_message("🔴 잘못된 도박 종류입니다. (가능한 종류: 꽃도박, 홀짝, 블랙잭)", ephemeral=True)
-
-    async def blackjack_turn(self, interaction, user_id):
-        game = blackjack_games[user_id]
-        player_hand = game["player_hand"]
-        dealer_hand = game["dealer_hand"]
-        deck = game["deck"]
-        bet = game["bet"]
-    
-        def hand_value(hand):
-            value = sum(hand)
-            aces = hand.count(11)
-            while value > 21 and aces:
-                value -= 10
-                aces -= 1
-            return value
-    
-        # 플레이어의 턴
-        while True:
-            player_total = hand_value(player_hand)
-            if player_total > 21:
-                user_balances[user_id] -= bet
-                save_balances()
-                del blackjack_games[user_id]  # 게임 상태 제거
-                await interaction.followup.send(
-                    f"🃏 당신의 카드: {player_hand} (총합: {player_total})\n"
-                    f"💥 버스트! 패배했습니다.\n현재 소지금: {user_balances[user_id]}원"
-                )
-                return
-    
-            await interaction.followup.send(
-                f"🃏 당신의 카드: {player_hand} (총합: {player_total})\n"
-                f"✋ \"고\"(추가) 또는 \"스톱\"(멈춤)을 선택하세요."
-            )
-    
-            try:
-                def check(msg):
-                    return msg.author == interaction.user and msg.content.lower() in ["고", "스톱"]
-    
-                msg = await self.bot.wait_for("message", check=check, timeout=30.0)
-                if msg.content.lower() == "고":
-                    player_hand.append(deck.pop())
-                elif msg.content.lower() == "스톱":
-                    break
-            except asyncio.TimeoutError:
-                await interaction.followup.send("⏳ 시간이 초과되었습니다. 자동으로 스톱 처리됩니다.")
-                break
-    
-        # 딜러의 턴
-        while hand_value(dealer_hand) < 17:
-            dealer_hand.append(deck.pop())
-    
-        dealer_total = hand_value(dealer_hand)
-        player_total = hand_value(player_hand)
-    
-        # 결과 계산
-        if player_total > 21:
-            result = "패배"
-            winnings = 0
-            user_balances[user_id] -= bet
-        elif dealer_total > 21 or player_total > dealer_total:
-            result = "승리"
-            winnings = bet * 2
-            user_balances[user_id] += winnings - bet
-        elif player_total == dealer_total:
-            result = "무승부"
-            winnings = bet
-        else:
-            result = "패배"
-            winnings = 0
-            user_balances[user_id] -= bet
-    
-        save_balances()
-        del blackjack_games[user_id]  # 게임 상태 제거
-    
-        await interaction.followup.send(
-            f"🃏 블랙잭 결과:\n"
-            f"당신의 카드: {player_hand} (총합: {player_total})\n"
-            f"딜러의 카드: {dealer_hand} (총합: {dealer_total})\n"
-            f"💰 {result}! 배당금: {winnings}원\n"
-            f"현재 소지금: {user_balances[user_id]}원"
-        )
+            await interaction.response.send_message("🔴 잘못된 도박 종류입니다. (가능한 종류: 꽃도박, 홀짝)", ephemeral=True)
 # --------------------------------------------------------------------
 # 봇 초기화
 # --------------------------------------------------------------------
