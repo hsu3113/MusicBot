@@ -110,12 +110,20 @@ class MusicBot(commands.Cog):
         if not voice_client:
             print("Bot is not connected to a voice channel. Connecting now...")
             try:
-                await interaction.followup.send("음성 채널에 연결 중입니다. 잠시만 기다려주세요...", ephemeral=True)
+                print(f"Attempting to connect to channel: {channel.name} (ID: {channel.id})")
                 voice_client = await channel.connect()
                 print(f"Successfully connected to the voice channel: {channel.name}")
+            except discord.ClientException as e:
+                print(f"Client exception while connecting: {e}")
+                await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 이미 연결되어 있거나 다른 문제가 발생했습니다.", ephemeral=True)
+                return
+            except discord.InvalidArgument as e:
+                print(f"Invalid argument while connecting: {e}")
+                await interaction.followup.send("🔴 잘못된 음성 채널 정보입니다. 다시 시도해주세요.", ephemeral=True)
+                return
             except Exception as e:
-                print(f"Error connecting to voice channel: {e}")
-                await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 다시 시도해주세요.", ephemeral=True)
+                print(f"Unexpected error while connecting: {e}")
+                await interaction.followup.send("🔴 음성 채널에 연결 중 문제가 발생했습니다.", ephemeral=True)
                 return
         
         await interaction.followup.send("봇이 음성 채널에 연결되었습니다.")
