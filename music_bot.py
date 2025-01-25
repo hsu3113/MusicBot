@@ -22,6 +22,7 @@ async def main():
             # 토큰으로 봇 시작
             load_dotenv()
             await bot.start(os.getenv("DISCORD_TOKEN"))
+            print(f"Discord Token: {DISCORD_TOKEN}")
     except KeyboardInterrupt:
         print("봇이 중단되었습니다.")
     finally:
