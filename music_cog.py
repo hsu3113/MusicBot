@@ -109,7 +109,16 @@ class MusicBot(commands.Cog):
 
         if not voice_client:
             print("Bot is not connected to a voice channel. Connecting now...")
-            voice_client = await channel.connect()
+            try:
+                await interaction.followup.send("음성 채널에 연결 중입니다. 잠시만 기다려주세요...", ephemeral=True)
+                voice_client = await channel.connect()
+                print(f"Successfully connected to the voice channel: {channel.name}")
+            except Exception as e:
+                print(f"Error connecting to voice channel: {e}")
+                await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 다시 시도해주세요.", ephemeral=True)
+                return
+        
+        await interaction.followup.send("봇이 음성 채널에 연결되었습니다.")
 
         await interaction.response.defer()
         print("Deferred interaction response.")
