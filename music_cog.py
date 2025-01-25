@@ -111,7 +111,7 @@ class MusicBot(commands.Cog):
             print("Bot is not connected to a voice channel. Connecting now...")
             try:
                 print(f"Attempting to connect to channel: {channel.name} (ID: {channel.id})")
-                voice_client = await channel.connect(timeout=10.0)
+                voice_client = await channel.connect(timeout=10.0)  # 타임아웃 설정
                 print(f"Successfully connected to the voice channel: {channel.name}")
             except discord.ClientException as e:
                 print(f"ClientException: {e}")
