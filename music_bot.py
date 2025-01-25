@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
 import os
 
 # 1) 길드(서버) 테스트 ID (선택 사항)
@@ -23,6 +24,7 @@ async def main():
         # 3) music_cog.py 로드
         await bot.load_extension("music_cog")
         # 4) 토큰으로 봇 시작
+        await load_dotenv()
         await bot.start(os.getenv("DISCORD_TOKEN"))
 
 
