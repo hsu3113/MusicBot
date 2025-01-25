@@ -65,6 +65,7 @@ class Dropdown(discord.ui.Select):
                          options=options)
 
     async def callback(self, interaction: discord.Interaction):
+        print("Dropdown callback triggered.")
         selected_url = self.values[0]
         queue.append(selected_url)
 
@@ -96,7 +97,10 @@ class MusicBot(commands.Cog):
 
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
     async def 검색(self, interaction: discord.Interaction, query: str):
+        print(f"/검색 command triggered by {interaction.user}. Query: {query}")
+
         if not interaction.user.voice:
+            print("User is not in a voice channel.")
             await interaction.response.send_message("먼저 음성 채널에 입장해야 합니다.", ephemeral=True)
             return
 
@@ -104,14 +108,18 @@ class MusicBot(commands.Cog):
         voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
 
         if not voice_client:
+            print("Bot is not connected to a voice channel. Connecting now...")
             voice_client = await channel.connect()
 
         await interaction.response.defer()
+        print("Deferred interaction response.")
 
         if query.startswith("http"):
             try:
+                print("Processing URL...")
                 data = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: ytdl.extract_info(query, download=False))
+                print(f"URL data fetched: {data}")
 
                 if 'entries' in data:
                     for entry in data['entries']:
@@ -125,14 +133,18 @@ class MusicBot(commands.Cog):
                     await self.play_next(interaction, voice_client)
 
             except Exception as e:
+                print(f"Error processing URL: {e}")
                 await interaction.followup.send(f"🔴 URL 처리 중 오류가 발생했습니다: {e}", ephemeral=True)
 
         else:
             try:
+                print("Processing search query...")
                 search_data = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False))
+                print(f"Search data fetched: {search_data}")
 
                 if 'entries' not in search_data or not search_data['entries']:
+                    print("No search results found.")
                     await interaction.followup.send("검색 결과를 찾을 수 없습니다.", ephemeral=True)
                     return
 
@@ -145,11 +157,14 @@ class MusicBot(commands.Cog):
                 await interaction.followup.send("원하는 노래를 선택하세요:", view=view)
 
             except Exception as e:
+                print(f"Error processing search query: {e}")
                 await interaction.followup.send(f"🔴 검색 중 오류가 발생했습니다: {e}", ephemeral=True)
 
     async def play_next(self, interaction: discord.Interaction, voice_client):
+        print("play_next called.")
         if queue:
             url = queue.pop(0)
+            print(f"Playing next song: {url}")
             async with interaction.channel.typing():
                 player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
                 voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(
@@ -157,11 +172,13 @@ class MusicBot(commands.Cog):
 
             await interaction.channel.send(f"🎵 재생 중: {player.title}")
         else:
+            print("Queue is empty. Disconnecting...")
             await voice_client.disconnect()
             await interaction.channel.send("🎵 대기열이 비었습니다. 음성 채널을 떠납니다.")
 
     @app_commands.command(name="대기열", description="현재 대기열을 표시합니다.")
     async def 대기열(self, interaction: discord.Interaction):
+        print("/대기열 command triggered.")
         if not queue:
             await interaction.response.send_message("🎵 현재 대기열이 비어 있습니다.", ephemeral=True)
         else:
@@ -170,26 +187,34 @@ class MusicBot(commands.Cog):
 
     @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
     async def 스킵(self, interaction: discord.Interaction):
+        print("/스킵 command triggered.")
         voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
 
         if voice_client and voice_client.is_playing():
+            print("Skipping current song.")
             voice_client.stop()
             await interaction.response.send_message("🎵 현재 곡을 건너뜁니다.")
         else:
+            print("No song is currently playing.")
             await interaction.response.send_message("재생 중인 곡이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="종료", description="재생을 멈추고 음성 채널에서 봇을 퇴장시킵니다.")
     async def 종료(self, interaction: discord.Interaction):
+        print("/종료 command triggered.")
         voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
 
         if voice_client and voice_client.is_connected():
+            print("Disconnecting from voice channel.")
             await voice_client.disconnect()
             await interaction.response.send_message("음악을 멈추고 봇이 퇴장했습니다.")
         else:
+            print("Bot is not connected to any voice channel.")
             await interaction.response.send_message("봇이 음성 채널에 있지 않습니다.", ephemeral=True)
 
 # --------------------------------------------------------------------
 # 6) Cog 로드 함수 (필수)
 # --------------------------------------------------------------------
 async def setup(bot: commands.Bot):
+    print("Loading MusicBot cog...")
     await bot.add_cog(MusicBot(bot))
+    print("MusicBot cog loaded.")
