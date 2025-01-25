@@ -111,22 +111,27 @@ class MusicBot(commands.Cog):
             print("Bot is not connected to a voice channel. Connecting now...")
             try:
                 print(f"Attempting to connect to channel: {channel.name} (ID: {channel.id})")
-                voice_client = await channel.connect()
+                voice_client = await channel.connect(timeout=10.0)
                 print(f"Successfully connected to the voice channel: {channel.name}")
             except discord.ClientException as e:
-                print(f"Client exception while connecting: {e}")
+                print(f"ClientException: {e}")
                 await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 이미 연결되어 있거나 다른 문제가 발생했습니다.", ephemeral=True)
                 return
             except discord.InvalidArgument as e:
-                print(f"Invalid argument while connecting: {e}")
+                print(f"InvalidArgument: {e}")
                 await interaction.followup.send("🔴 잘못된 음성 채널 정보입니다. 다시 시도해주세요.", ephemeral=True)
                 return
+            except asyncio.TimeoutError:
+                print("TimeoutError: Connection to the voice channel timed out.")
+                await interaction.followup.send("🔴 음성 채널에 연결하는 데 시간이 초과되었습니다.", ephemeral=True)
+                return
             except Exception as e:
-                print(f"Unexpected error while connecting: {e}")
+                print(f"Unexpected error during connection: {e}")
                 await interaction.followup.send("🔴 음성 채널에 연결 중 문제가 발생했습니다.", ephemeral=True)
                 return
         
         await interaction.followup.send("봇이 음성 채널에 연결되었습니다.")
+
 
         await interaction.response.defer()
         print("Deferred interaction response.")
