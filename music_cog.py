@@ -4,6 +4,7 @@ from discord import app_commands
 import yt_dlp
 import asyncio
 import random
+import json
 
 # --------------------------------------------------------------------
 # 1) 유튜브DL 관련 옵션 설정
@@ -30,7 +31,24 @@ ffmpeg_options = {
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 # --------------------------------------------------------------------
-# 2) YTDLSource 클래스
+# 2) 파일 저장 및 로드 함수
+# --------------------------------------------------------------------
+BALANCE_FILE = "user_balances.json"
+
+def save_balances():
+    with open(BALANCE_FILE, "w") as f:
+        json.dump(user_balances, f)
+
+def load_balances():
+    global user_balances
+    try:
+        with open(BALANCE_FILE, "r") as f:
+            user_balances = json.load(f)
+    except FileNotFoundError:
+        user_balances = {}
+
+# --------------------------------------------------------------------
+# 3) YTDLSource 클래스
 # --------------------------------------------------------------------
 class YTDLSource(discord.PCMVolumeTransformer):
 
@@ -53,7 +71,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 # --------------------------------------------------------------------
-# 3) 노래 선택 Dropdown 관련
+# 4) 노래 선택 Dropdown 관련
 # --------------------------------------------------------------------
 class Dropdown(discord.ui.Select):
 
@@ -72,6 +90,7 @@ class Dropdown(discord.ui.Select):
         # 소지금 추가 로직
         user_id = str(interaction.user.id)
         user_balances[user_id] = user_balances.get(user_id, 0) + 100
+        save_balances()
 
         await interaction.response.send_message(f"🎵 대기열에 추가되었습니다: {selected_url}. 현재 소지금: {user_balances[user_id]}원")
 
@@ -87,13 +106,14 @@ class DropdownView(discord.ui.View):
         self.add_item(Dropdown(options, interaction, music_bot))
 
 # --------------------------------------------------------------------
-# 4) 재생 대기열 및 사용자 소지금 데이터
+# 5) 재생 대기열 및 사용자 소지금 데이터
 # --------------------------------------------------------------------
 queue = []
-user_balances = {}  # 사용자 소지금을 저장하는 딕셔너리
+user_balances = {}
+load_balances()
 
 # --------------------------------------------------------------------
-# 5) MusicBot Cog
+# 6) MusicBot Cog
 # --------------------------------------------------------------------
 class MusicBot(commands.Cog):
 
@@ -134,6 +154,7 @@ class MusicBot(commands.Cog):
                         # 소지금 추가 로직
                         user_id = str(interaction.user.id)
                         user_balances[user_id] = user_balances.get(user_id, 0) + 100
+                        save_balances()
 
                         await interaction.followup.send(
                             f"🎵 플레이리스트에서 {len(data['entries'])}곡을 대기열에 추가했습니다. 현재 소지금: {user_balances[user_id]}원")
@@ -143,6 +164,7 @@ class MusicBot(commands.Cog):
                         # 소지금 추가 로직
                         user_id = str(interaction.user.id)
                         user_balances[user_id] = user_balances.get(user_id, 0) + 100
+                        save_balances()
 
                         await interaction.followup.send(
                             f"🎵 대기열에 추가되었습니다: {data['title']}. 현재 소지금: {user_balances[user_id]}원")
@@ -181,11 +203,12 @@ class MusicBot(commands.Cog):
                 player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
                 voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(
                     self.play_next(interaction, voice_client), self.bot.loop).result() if queue else None)
+
             await interaction.channel.send(f"🎵 재생 중: {player.title}")
         else:
-            await interaction.channel.send("🎵 대기열이 비었습니다. 음악을 중단합니다.")
             await voice_client.disconnect()
-        
+            await interaction.channel.send("🎵 대기열이 비었습니다. 음성 채널을 떠납니다.")
+
     @app_commands.command(name="대기열", description="현재 대기열을 표시합니다.")
     async def 대기열(self, interaction: discord.Interaction):
         if not queue:
@@ -194,31 +217,6 @@ class MusicBot(commands.Cog):
             queue_list = "\n".join([f"{i + 1}. {url}" for i, url in enumerate(queue)])
             await interaction.response.send_message(f"🎵 현재 대기열:\n{queue_list}")
 
-    @app_commands.command(name="송금", description="다른 사용자에게 소지금을 송금합니다.")
-    async def 송금(self, interaction: discord.Interaction, 상대방: discord.Member, 금액: int):
-        """다른 사용자에게 소지금을 송금합니다."""
-        sender_id = str(interaction.user.id)
-        receiver_id = str(상대방.id)
-    
-        if 금액 <= 0:
-            await interaction.response.send_message("🔴 송금 금액은 0원 이상이어야 합니다.", ephemeral=True)
-            return
-    
-        sender_balance = user_balances.get(sender_id, 0)
-    
-        if sender_balance < 금액:
-            await interaction.response.send_message("🔴 소지금이 부족합니다.", ephemeral=True)
-            return
-    
-        # 송금 처리
-        user_balances[sender_id] = sender_balance - 금액
-        user_balances[receiver_id] = user_balances.get(receiver_id, 0) + 금액
-    
-        await interaction.response.send_message(
-            f"💸 {interaction.user.display_name}님이 {상대방.display_name}님에게 {금액}원을 송금했습니다.\n"
-            f"현재 {interaction.user.display_name}님의 소지금: {user_balances[sender_id]}원"
-        )
-    
     @app_commands.command(name="소지금", description="자신의 소지금을 확인합니다.")
     async def 소지금(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -237,64 +235,44 @@ class MusicBot(commands.Cog):
             ])
             await interaction.response.send_message(f"💰 소지금 랭킹:\n{ranking_list}")
 
-    @app_commands.command(name="도박", description="소지금을 걸고 도박을 합니다.")
-    async def 도박(self, interaction: discord.Interaction, 금액: int):
-        user_id = str(interaction.user.id)
-        balance = user_balances.get(user_id, 0)
+    @app_commands.command(name="송금", description="다른 사용자에게 소지금을 송금합니다.")
+    async def 송금(self, interaction: discord.Interaction, 상대방: discord.Member, 금액: int):
+        sender_id = str(interaction.user.id)
+        receiver_id = str(상대방.id)
 
         if 금액 <= 0:
-            await interaction.response.send_message("🔴 베팅 금액은 0원 이상이어야 합니다.", ephemeral=True)
+            await interaction.response.send_message("🔴 송금 금액은 0원 이상이어야 합니다.", ephemeral=True)
             return
 
-        if 금액 > balance:
+        sender_balance = user_balances.get(sender_id, 0)
+
+        if sender_balance < 금액:
             await interaction.response.send_message("🔴 소지금이 부족합니다.", ephemeral=True)
             return
 
-        print(f"{interaction.user} is gambling {금액}원. Current balance: {balance}원")
+        # 송금 처리
+        user_balances[sender_id] = sender_balance - 금액
+        user_balances[receiver_id] = user_balances.get(receiver_id, 0) + 금액
+        save_balances()
 
-        outcome = random.choice(["win", "lose"])
-        if outcome == "win":
-            winnings = 금액 * 2
-            user_balances[user_id] += 금액  # 이긴 금액 추가
-            await interaction.response.send_message(f"🎉 축하합니다! {금액}원을 베팅하여 {winnings}원을 얻었습니다! 현재 소지금: {user_balances[user_id]}원")
-        else:
-            user_balances[user_id] -= 금액  # 잃은 금액 차감
-            await interaction.response.send_message(f"💔 아쉽게도 {금액}원을 잃었습니다. 현재 소지금: {user_balances[user_id]}원")
-
-    @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
-    async def 스킵(self, interaction: discord.Interaction):
-        # 음성 클라이언트 확인
-        voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-    
-        if not voice_client or not voice_client.is_connected():
-            await interaction.response.send_message("🔴 봇이 음성 채널에 연결되어 있지 않습니다.", ephemeral=True)
-            return
-    
-        if voice_client.is_playing():
-            # 현재 곡 중단 및 다음 곡 재생
-            voice_client.stop()
-            await interaction.response.send_message("⏭️ 현재 곡을 건너뜁니다.")
-            await self.play_next(interaction, voice_client)
-        else:
-            await interaction.response.send_message("🔴 현재 재생 중인 곡이 없습니다.", ephemeral=True)
-
-    @app_commands.command(name="종료", description="재생을 멈추고 음성 채널에서 봇을 퇴장시킵니다.")
-    async def 종료(self, interaction: discord.Interaction):
-        print("/종료 command triggered.")
-        voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-
-        if voice_client and voice_client.is_connected():
-            print("Disconnecting from voice channel.")
-            await voice_client.disconnect()
-            await interaction.response.send_message("음악을 멈추고 봇이 퇴장했습니다.")
-        else:
-            print("Bot is not connected to any voice channel.")
-            await interaction.response.send_message("봇이 음성 채널에 있지 않습니다.", ephemeral=True)
+        await interaction.response.send_message(
+            f"💸 {interaction.user.display_name}님이 {상대방.display_name}님에게 {금액}원을 송금했습니다.\n"
+            f"현재 {interaction.user.display_name}님의 소지금: {user_balances[sender_id]}원"
+        )
 
 # --------------------------------------------------------------------
-# 6) Cog 로드 함수 (필수)
+# 봇 초기화
 # --------------------------------------------------------------------
-async def setup(bot: commands.Bot):
-    print("Loading MusicBot cog...")
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="/", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user}")
+
+async def setup(bot):
     await bot.add_cog(MusicBot(bot))
-    print("MusicBot cog loaded.")
+
+asyncio.run(setup(bot))
+bot.run("YOUR_DISCORD_TOKEN")
