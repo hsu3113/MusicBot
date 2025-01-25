@@ -274,7 +274,6 @@ class MusicBot(commands.Cog):
             return
 
         if 종류 == "꽃도박":
-            await interaction.response.send_message("꽃이 10개 이하면 배당금을 모두 잃습니다.")
             grid = [[random.choice(["🌸", "⬜"]) for _ in range(5)] for _ in range(5)]
             flower_count = sum(row.count("🌸") for row in grid)
             if flower_count > 10 :
@@ -287,11 +286,10 @@ class MusicBot(commands.Cog):
 
             grid_display = "\n".join(["".join(row) for row in grid])
             await interaction.response.send_message(
-                f"🌸 꽃도박 결과:\n{grid_display}\n🌸 꽃 개수: {flower_count}\n💰 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
+                f"꽃이 10개 이하면 배당금을 모두 잃습니다.\n🌸 꽃도박 결과:\n{grid_display}\n🌸 꽃 개수: {flower_count}\n💰 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
             )
 
         elif 종류 == "홀짝":
-            await interaction.response.send_message("배당금의 홀짝에 따라 플레이어의 선택이 결정됩니다.")
             outcome = random.choice(["홀수", "짝수"])
             user_choice = "홀수" if 금액 % 2 else "짝수"
 
@@ -306,7 +304,7 @@ class MusicBot(commands.Cog):
 
             save_balances()
             await interaction.response.send_message(
-                f"🎲 홀짝 결과: {outcome}\n💰 {result}! 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
+                f"배당금의 홀짝에 따라 플레이어의 선택이 결정됩니다.\n🎲 홀짝 결과: {outcome}\n💰 {result}! 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
             )
         else:
             await interaction.response.send_message("🔴 잘못된 도박 종류입니다. (가능한 종류: 꽃도박, 홀짝)", ephemeral=True)
