@@ -133,54 +133,30 @@ class MusicBot(commands.Cog):
         await interaction.followup.send("봇이 음성 채널에 연결되었습니다.")
 
 
-        await interaction.response.defer()
-        print("Deferred interaction response.")
+        try:
+            print("Processing search query...")
+            search_data = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False)
+            )
+            print(f"Search data: {search_data}")
 
-        if query.startswith("http"):
-            try:
-                print("Processing URL...")
-                data = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: ytdl.extract_info(query, download=False))
-                print(f"URL data fetched: {data}")
+            if 'entries' not in search_data or not search_data['entries']:
+                print("No search results found.")
+                await interaction.followup.send("검색 결과를 찾을 수 없습니다.", ephemeral=True)
+                return
 
-                if 'entries' in data:
-                    for entry in data['entries']:
-                        queue.append(entry['webpage_url'])
-                    await interaction.followup.send(f"🎵 플레이리스트에서 {len(data['entries'])}곡을 대기열에 추가했습니다.")
-                else:
-                    queue.append(data['webpage_url'])
-                    await interaction.followup.send(f"🎵 대기열에 추가되었습니다: {data['title']}")
+            # 검색 결과에서 옵션 생성
+            options = [
+                discord.SelectOption(label=entry['title'], value=entry['webpage_url'])
+                for entry in search_data['entries'][:5]
+            ]
 
-                if not voice_client.is_playing():
-                    await self.play_next(interaction, voice_client)
+            view = DropdownView(options, interaction, music_bot=self)
+            await interaction.followup.send("원하는 노래를 선택하세요:", view=view)
 
-            except Exception as e:
-                print(f"Error processing URL: {e}")
-                await interaction.followup.send(f"🔴 URL 처리 중 오류가 발생했습니다: {e}", ephemeral=True)
-
-        else:
-            try:
-                print("Processing search query...")
-                search_data = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False))
-                print(f"Search data fetched: {search_data}")
-
-                if 'entries' not in search_data or not search_data['entries']:
-                    print("No search results found.")
-                    await interaction.followup.send("검색 결과를 찾을 수 없습니다.", ephemeral=True)
-                    return
-
-                options = [
-                    discord.SelectOption(label=entry['title'], value=entry['webpage_url'])
-                    for entry in search_data['entries'][:5]
-                ]
-
-                view = DropdownView(options, interaction, music_bot=self)
-                await interaction.followup.send("원하는 노래를 선택하세요:", view=view)
-
-            except Exception as e:
-                print(f"Error processing search query: {e}")
-                await interaction.followup.send(f"🔴 검색 중 오류가 발생했습니다: {e}", ephemeral=True)
+        except Exception as e:
+            print(f"Error during search: {e}")
+            await interaction.followup.send(f"🔴 검색 중 오류가 발생했습니다: {e}", ephemeral=True)
 
     async def play_next(self, interaction: discord.Interaction, voice_client):
         print("play_next called.")
