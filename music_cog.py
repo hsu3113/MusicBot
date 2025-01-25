@@ -420,6 +420,3 @@ async def on_ready():
 
 async def setup(bot):
     await bot.add_cog(MusicBot(bot))
-
-asyncio.run(setup(bot))
-bot.run("YOUR_DISCORD_TOKEN")
