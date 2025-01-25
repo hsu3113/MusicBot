@@ -130,12 +130,22 @@ class MusicBot(commands.Cog):
                     if 'entries' in data:  # 플레이리스트 처리
                         for entry in data['entries']:
                             queue.append(entry['webpage_url'])
+
+                        # 소지금 추가 로직
+                        user_id = str(interaction.user.id)
+                        user_balances[user_id] = user_balances.get(user_id, 0) + 100
+
                         await interaction.followup.send(
-                            f"🎵 플레이리스트에서 {len(data['entries'])}곡을 대기열에 추가했습니다.")
+                            f"🎵 플레이리스트에서 {len(data['entries'])}곡을 대기열에 추가했습니다. 현재 소지금: {user_balances[user_id]}원")
                     else:  # 단일 곡 처리
                         queue.append(data['webpage_url'])
+
+                        # 소지금 추가 로직
+                        user_id = str(interaction.user.id)
+                        user_balances[user_id] = user_balances.get(user_id, 0) + 100
+
                         await interaction.followup.send(
-                            f"🎵 대기열에 추가되었습니다: {data['title']}")
+                            f"🎵 대기열에 추가되었습니다: {data['title']}. 현재 소지금: {user_balances[user_id]}원")
 
                     if not voice_client.is_playing():
                         await self.play_next(interaction, voice_client)
@@ -171,12 +181,11 @@ class MusicBot(commands.Cog):
                 player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
                 voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(
                     self.play_next(interaction, voice_client), self.bot.loop).result() if queue else None)
-
             await interaction.channel.send(f"🎵 재생 중: {player.title}")
         else:
+            await interaction.channel.send("🎵 대기열이 비었습니다. 음악을 중단합니다.")
             await voice_client.disconnect()
-            await interaction.channel.send("🎵 대기열이 비었습니다. 음성 채널을 떠납니다.")
-
+        
     @app_commands.command(name="대기열", description="현재 대기열을 표시합니다.")
     async def 대기열(self, interaction: discord.Interaction):
         if not queue:
@@ -185,6 +194,31 @@ class MusicBot(commands.Cog):
             queue_list = "\n".join([f"{i + 1}. {url}" for i, url in enumerate(queue)])
             await interaction.response.send_message(f"🎵 현재 대기열:\n{queue_list}")
 
+    @app_commands.command(name="송금", description="다른 사용자에게 소지금을 송금합니다.")
+    async def 송금(self, interaction: discord.Interaction, 상대방: discord.Member, 금액: int):
+        """다른 사용자에게 소지금을 송금합니다."""
+        sender_id = str(interaction.user.id)
+        receiver_id = str(상대방.id)
+    
+        if 금액 <= 0:
+            await interaction.response.send_message("🔴 송금 금액은 0원 이상이어야 합니다.", ephemeral=True)
+            return
+    
+        sender_balance = user_balances.get(sender_id, 0)
+    
+        if sender_balance < 금액:
+            await interaction.response.send_message("🔴 소지금이 부족합니다.", ephemeral=True)
+            return
+    
+        # 송금 처리
+        user_balances[sender_id] = sender_balance - 금액
+        user_balances[receiver_id] = user_balances.get(receiver_id, 0) + 금액
+    
+        await interaction.response.send_message(
+            f"💸 {interaction.user.display_name}님이 {상대방.display_name}님에게 {금액}원을 송금했습니다.\n"
+            f"현재 {interaction.user.display_name}님의 소지금: {user_balances[sender_id]}원"
+        )
+    
     @app_commands.command(name="소지금", description="자신의 소지금을 확인합니다.")
     async def 소지금(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -229,16 +263,20 @@ class MusicBot(commands.Cog):
 
     @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
     async def 스킵(self, interaction: discord.Interaction):
-        print("/스킵 command triggered.")
+        # 음성 클라이언트 확인
         voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-
-        if voice_client and voice_client.is_playing():
-            print("Skipping current song.")
+    
+        if not voice_client or not voice_client.is_connected():
+            await interaction.response.send_message("🔴 봇이 음성 채널에 연결되어 있지 않습니다.", ephemeral=True)
+            return
+    
+        if voice_client.is_playing():
+            # 현재 곡 중단 및 다음 곡 재생
             voice_client.stop()
-            await interaction.response.send_message("🎵 현재 곡을 건너뜁니다.")
+            await interaction.response.send_message("⏭️ 현재 곡을 건너뜁니다.")
+            await self.play_next(interaction, voice_client)
         else:
-            print("No song is currently playing.")
-            await interaction.response.send_message("재생 중인 곡이 없습니다.", ephemeral=True)
+            await interaction.response.send_message("🔴 현재 재생 중인 곡이 없습니다.", ephemeral=True)
 
     @app_commands.command(name="종료", description="재생을 멈추고 음성 채널에서 봇을 퇴장시킵니다.")
     async def 종료(self, interaction: discord.Interaction):
