@@ -69,7 +69,12 @@ class Dropdown(discord.ui.Select):
         selected_url = self.values[0]
         queue.append(selected_url)
 
-        await interaction.response.send_message(f"🎵 대기열에 추가되었습니다: {selected_url}")
+        # 소지금 추가 로직
+        user_id = str(interaction.user.id)
+        user_balances[user_id] = user_balances.get(user_id, 0) + 100
+        print(f"Updated balance for {interaction.user}: {user_balances[user_id]}")
+
+        await interaction.response.send_message(f"🎵 대기열에 추가되었습니다: {selected_url}. 현재 소지금: {user_balances[user_id]}원")
 
         voice_client = discord.utils.get(self.music_bot.bot.voice_clients,
                                          guild=interaction.guild)
@@ -83,9 +88,10 @@ class DropdownView(discord.ui.View):
         self.add_item(Dropdown(options, interaction, music_bot))
 
 # --------------------------------------------------------------------
-# 4) 재생 대기열 (전역 리스트)
+# 4) 재생 대기열 및 사용자 소지금 데이터
 # --------------------------------------------------------------------
 queue = []
+user_balances = {}  # 사용자 소지금을 저장하는 딕셔너리
 
 # --------------------------------------------------------------------
 # 5) MusicBot Cog
@@ -98,15 +104,15 @@ class MusicBot(commands.Cog):
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
     async def 검색(self, interaction: discord.Interaction, query: str):
         print(f"/검색 command triggered by {interaction.user}. Query: {query}")
-    
+
         if not interaction.user.voice:
             print("User is not in a voice channel.")
             await interaction.response.send_message("먼저 음성 채널에 입장해야 합니다.", ephemeral=True)
             return
-    
+
         channel = interaction.user.voice.channel
         voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-    
+
         if not voice_client:
             print("Bot is not connected to a voice channel. Connecting now...")
             await interaction.response.defer()  # 응답 지연 설정
@@ -118,7 +124,7 @@ class MusicBot(commands.Cog):
                 print(f"Error connecting to voice channel: {e}")
                 await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 다시 시도해주세요.", ephemeral=True)
                 return
-    
+
         # YouTube 검색
         try:
             print("Processing search query...")
@@ -126,7 +132,7 @@ class MusicBot(commands.Cog):
                 None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False)
             )
             print(f"Search data: {search_data}")
-    
+
             if 'entries' in search_data and search_data['entries']:
                 options = [
                     discord.SelectOption(label=entry['title'], value=entry['webpage_url'])
@@ -137,7 +143,7 @@ class MusicBot(commands.Cog):
             else:
                 print("No search results found.")
                 await interaction.followup.send("검색 결과를 찾을 수 없습니다.", ephemeral=True)
-    
+
         except Exception as e:
             print(f"Error during search: {e}")
             await interaction.followup.send(f"🔴 검색 중 오류가 발생했습니다: {e}", ephemeral=True)
@@ -154,7 +160,7 @@ class MusicBot(commands.Cog):
 
             await interaction.channel.send(f"🎵 재생 중: {player.title}")
         else:
-            print("Queue is empty. Disconnecting...")
+            print("Queue is empty. Disconnecting from voice channel.")
             await voice_client.disconnect()
             await interaction.channel.send("🎵 대기열이 비었습니다. 음성 채널을 떠납니다.")
 
@@ -166,6 +172,26 @@ class MusicBot(commands.Cog):
         else:
             queue_list = "\n".join([f"{i + 1}. {url}" for i, url in enumerate(queue)])
             await interaction.response.send_message(f"🎵 현재 대기열:\n{queue_list}")
+
+    @app_commands.command(name="소지금", description="자신의 소지금을 확인합니다.")
+    async def 소지금(self, interaction: discord.Interaction):
+        user_id = str(interaction.user.id)
+        balance = user_balances.get(user_id, 0)
+        print(f"{interaction.user} checked their balance: {balance}원")
+        await interaction.response.send_message(f"💰 {interaction.user.display_name}님의 소지금: {balance}원")
+
+    @app_commands.command(name="랭킹", description="모두의 소지금을 순서대로 표시합니다.")
+    async def 랭킹(self, interaction: discord.Interaction):
+        print("/랭킹 command triggered.")
+        if not user_balances:
+            await interaction.response.send_message("아직 등록된 사용자가 없습니다.", ephemeral=True)
+        else:
+            sorted_balances = sorted(user_balances.items(), key=lambda x: x[1], reverse=True)
+            ranking_list = "\n".join([
+                f"{i + 1}. <@{user_id}>: {balance}원"
+                for i, (user_id, balance) in enumerate(sorted_balances)
+            ])
+            await interaction.response.send_message(f"💰 소지금 랭킹:\n{ranking_list}")
 
     @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
     async def 스킵(self, interaction: discord.Interaction):
