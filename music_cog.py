@@ -98,62 +98,46 @@ class MusicBot(commands.Cog):
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
     async def 검색(self, interaction: discord.Interaction, query: str):
         print(f"/검색 command triggered by {interaction.user}. Query: {query}")
-
+    
         if not interaction.user.voice:
             print("User is not in a voice channel.")
             await interaction.response.send_message("먼저 음성 채널에 입장해야 합니다.", ephemeral=True)
             return
-
+    
         channel = interaction.user.voice.channel
         voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-
+    
         if not voice_client:
             print("Bot is not connected to a voice channel. Connecting now...")
+            await interaction.response.defer()  # 응답 지연 설정
             try:
-                print(f"Attempting to connect to channel: {channel.name} (ID: {channel.id})")
-                voice_client = await channel.connect(timeout=10.0)  # 타임아웃 설정
+                voice_client = await channel.connect()
                 print(f"Successfully connected to the voice channel: {channel.name}")
-            except discord.ClientException as e:
-                print(f"ClientException: {e}")
-                await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 이미 연결되어 있거나 다른 문제가 발생했습니다.", ephemeral=True)
-                return
-            except discord.InvalidArgument as e:
-                print(f"InvalidArgument: {e}")
-                await interaction.followup.send("🔴 잘못된 음성 채널 정보입니다. 다시 시도해주세요.", ephemeral=True)
-                return
-            except asyncio.TimeoutError:
-                print("TimeoutError: Connection to the voice channel timed out.")
-                await interaction.followup.send("🔴 음성 채널에 연결하는 데 시간이 초과되었습니다.", ephemeral=True)
-                return
+                await interaction.followup.send("음성 채널에 연결되었습니다. 검색을 시작합니다.")
             except Exception as e:
-                print(f"Unexpected error during connection: {e}")
-                await interaction.followup.send("🔴 음성 채널에 연결 중 문제가 발생했습니다.", ephemeral=True)
+                print(f"Error connecting to voice channel: {e}")
+                await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 다시 시도해주세요.", ephemeral=True)
                 return
-        
-        await interaction.followup.send("봇이 음성 채널에 연결되었습니다.")
-
-
+    
+        # YouTube 검색
         try:
             print("Processing search query...")
             search_data = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False)
             )
             print(f"Search data: {search_data}")
-
-            if 'entries' not in search_data or not search_data['entries']:
+    
+            if 'entries' in search_data and search_data['entries']:
+                options = [
+                    discord.SelectOption(label=entry['title'], value=entry['webpage_url'])
+                    for entry in search_data['entries'][:5]
+                ]
+                view = DropdownView(options, interaction, music_bot=self)
+                await interaction.followup.send("원하는 노래를 선택하세요:", view=view)
+            else:
                 print("No search results found.")
                 await interaction.followup.send("검색 결과를 찾을 수 없습니다.", ephemeral=True)
-                return
-
-            # 검색 결과에서 옵션 생성
-            options = [
-                discord.SelectOption(label=entry['title'], value=entry['webpage_url'])
-                for entry in search_data['entries'][:5]
-            ]
-
-            view = DropdownView(options, interaction, music_bot=self)
-            await interaction.followup.send("원하는 노래를 선택하세요:", view=view)
-
+    
         except Exception as e:
             print(f"Error during search: {e}")
             await interaction.followup.send(f"🔴 검색 중 오류가 발생했습니다: {e}", ephemeral=True)
