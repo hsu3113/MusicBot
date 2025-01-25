@@ -15,12 +15,13 @@ async def on_ready():
 
 
 async def main():
-    async with bot:
-        # music_cog.py 로드
-        await bot.load_extension("music_cog")
-        # 토큰으로 봇 시작
-        load_dotenv()
-        await bot.start(os.getenv("DISCORD_TOKEN"))
+    try :
+        async with bot:
+            # music_cog.py 로드
+            await bot.load_extension("music_cog")
+            # 토큰으로 봇 시작
+            load_dotenv()
+            await bot.start(os.getenv("DISCORD_TOKEN"))
     except KeyboardInterrupt:
         print("봇이 중단되었습니다.")
     finally:
