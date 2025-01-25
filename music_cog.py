@@ -105,6 +105,27 @@ class MusicBot(commands.Cog):
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
     async def 검색(self, interaction: discord.Interaction, query: str):
         print(f"/검색 command triggered by {interaction.user}. Query: {query}")
+        
+        if not interaction.user.voice:
+            print("User is not in a voice channel.")
+            await interaction.response.send_message("먼저 음성 채널에 입장해야 합니다.", ephemeral=True)
+            return
+
+        channel = interaction.user.voice.channel
+        voice_client = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+
+        if not voice_client:
+            print("Bot is not connected to a voice channel. Connecting now...")
+            await interaction.response.defer()  # 응답 지연 설정
+            try:
+                voice_client = await channel.connect()
+                print(f"Successfully connected to the voice channel: {channel.name}")
+                await interaction.followup.send("음성 채널에 연결되었습니다. 검색을 시작합니다.")
+            except Exception as e:
+                print(f"Error connecting to voice channel: {e}")
+                await interaction.followup.send("🔴 음성 채널에 연결할 수 없습니다. 다시 시도해주세요.", ephemeral=True)
+                return
+
     
         # Interaction 응답 지연 설정
         await interaction.response.defer()
