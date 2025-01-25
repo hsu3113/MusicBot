@@ -130,7 +130,7 @@ class MusicBot(commands.Cog):
         try:
             print("Processing search query...")
             search_data = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False)
+                None, lambda: ytdl.extract_info(f"ytsearch3:{query}", download=False)
             )
             print(f"Search data: {search_data}")
 
