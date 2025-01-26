@@ -459,7 +459,7 @@ class MusicBot(commands.Cog):
 
     @commands.command(name="투표종료")
     @commands.has_permissions(administrator=True)  # 관리자 전용
-    async def end_vote(ctx):
+    async def end_vote(self, ctx):
         """현재 투표를 종료합니다."""
     
         if not self.current_vote or not self.current_vote["active"]:
