@@ -216,7 +216,6 @@ class MusicBot(commands.Cog):
             await self.check_voice_state(voice_client)
 
     @app_commands.command(name="대기열", description="현재 대기열을 표시합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 대기열(self, interaction: discord.Interaction):
         if not queue:
             await interaction.response.send_message("🎵 현재 대기열이 비어 있습니다.", ephemeral=True)
@@ -225,14 +224,12 @@ class MusicBot(commands.Cog):
             await interaction.response.send_message(f"🎵 현재 대기열:\n{queue_list}")
 
     @app_commands.command(name="소지금", description="자신의 소지금을 확인합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 소지금(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
         await interaction.response.send_message(f"💰 {interaction.user.display_name}님의 소지금: {balance}원")
 
     @app_commands.command(name="랭킹", description="모두의 소지금을 순서대로 표시합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 랭킹(self, interaction: discord.Interaction):
         if not user_balances:
             await interaction.response.send_message("아직 등록된 사용자가 없습니다.", ephemeral=True)
@@ -245,7 +242,6 @@ class MusicBot(commands.Cog):
             await interaction.response.send_message(f"💰 소지금 랭킹:\n{ranking_list}")
 
     @app_commands.command(name="송금", description="다른 사용자에게 소지금을 송금합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 송금(self, interaction: discord.Interaction, 상대방: discord.Member, 금액: int):
         sender_id = str(interaction.user.id)
         receiver_id = str(상대방.id)
@@ -275,7 +271,6 @@ class MusicBot(commands.Cog):
     
     # 도박
     @app_commands.command(name="도박", description="사용 가능한 도박 종류를 알려줍니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 도박(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             "🎲 사용 가능한 도박 명령어:\n- 홀짝\n- 꽃도박\n- 설명"
