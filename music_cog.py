@@ -116,9 +116,10 @@ load_balances()
 # 6) MusicBot Cog
 # --------------------------------------------------------------------
 class MusicBot(commands.Cog):
-
+    GUILD_ID = 0
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.GUILD_ID = 629171925976875009
         
     async def check_voice_state(self, voice_client):
         """재생 중인 노래가 없거나 음성 채널에 사용자가 없으면 채널 나가기 및 초기화."""
@@ -128,6 +129,7 @@ class MusicBot(commands.Cog):
             print("🔊 음성 채널에서 나갔습니다. 대기열이 초기화되었습니다.")
             
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 검색(self, interaction: discord.Interaction, URL: str):
         # 음성 채널 연결 여부 확인
         if not interaction.user.voice or not interaction.user.voice.channel:
@@ -217,6 +219,7 @@ class MusicBot(commands.Cog):
             await self.check_voice_state(voice_client)
 
     @app_commands.command(name="대기열", description="현재 대기열을 표시합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 대기열(self, interaction: discord.Interaction):
         if not queue:
             await interaction.response.send_message("🎵 현재 대기열이 비어 있습니다.", ephemeral=True)
@@ -225,12 +228,14 @@ class MusicBot(commands.Cog):
             await interaction.response.send_message(f"🎵 현재 대기열:\n{queue_list}")
 
     @app_commands.command(name="소지금", description="자신의 소지금을 확인합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 소지금(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
         await interaction.response.send_message(f"💰 {interaction.user.display_name}님의 소지금: {balance}원")
 
     @app_commands.command(name="랭킹", description="모두의 소지금을 순서대로 표시합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 랭킹(self, interaction: discord.Interaction):
         if not user_balances:
             await interaction.response.send_message("아직 등록된 사용자가 없습니다.", ephemeral=True)
@@ -243,6 +248,7 @@ class MusicBot(commands.Cog):
             await interaction.response.send_message(f"💰 소지금 랭킹:\n{ranking_list}")
 
     @app_commands.command(name="송금", description="다른 사용자에게 소지금을 송금합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 송금(self, interaction: discord.Interaction, 상대방: discord.Member, 금액: int):
         sender_id = str(interaction.user.id)
         receiver_id = str(상대방.id)
@@ -272,6 +278,7 @@ class MusicBot(commands.Cog):
     
     # 도박
     @app_commands.command(name="도박", description="사용 가능한 도박 종류를 알려줍니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 도박(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             "🎲 사용 가능한 도박 명령어:\n- 홀짝\n- 꽃도박\n- 설명"
@@ -279,6 +286,7 @@ class MusicBot(commands.Cog):
         )
 
     @app_commands.command(name="설명", description="도박에 대한 설명을 제공합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 홀짝_설명(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             f"🎲 홀짝 도박:\n베팅 금액이 홀수면 플레이어의 선택은 자동으로 홀수, 짝수면 짝수로 설정됩니다.\n맞추면 베팅 금액의 2배를 얻습니다."
@@ -286,6 +294,7 @@ class MusicBot(commands.Cog):
         )
 
     @app_commands.command(name="홀짝", description="홀짝 도박을 실행합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 홀짝(self, interaction: discord.Interaction, 베팅_금액: int):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
@@ -326,6 +335,7 @@ class MusicBot(commands.Cog):
         await interaction.response.send_message(message)
 
     @app_commands.command(name="꽃도박", description="꽃도박을 실행합니다.")
+    @app_commands.guilds(discord.Object(id=GUILD_ID))
     async def 꽃도박(self, interaction: discord.Interaction, 베팅_금액: int):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
