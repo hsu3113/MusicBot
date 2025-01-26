@@ -121,7 +121,7 @@ class MusicBot(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
-    async def 검색(self, interaction: discord.Interaction, query: str):
+    async def 검색(self, interaction: discord.Interaction, URL: str):
         # 음성 채널 연결 여부 확인
         if not interaction.user.voice or not interaction.user.voice.channel:
             await interaction.response.send_message("🔴 음성 채널에 입장해야 명령어를 사용할 수 있습니다.", ephemeral=True)
@@ -141,10 +141,10 @@ class MusicBot(commands.Cog):
                 await voice_client.move_to(channel)
 
             # URL 또는 검색어 처리
-            if query.startswith("http"):
+            if URL.startswith("http"):
                 try:
                     data = await asyncio.get_event_loop().run_in_executor(
-                        None, lambda: ytdl.extract_info(query, download=False)
+                        None, lambda: ytdl.extract_info(URL, download=False)
                     )
 
                     if 'entries' in data:  # 플레이리스트 처리
@@ -178,7 +178,7 @@ class MusicBot(commands.Cog):
             else:
                 # 검색어 처리
                 search_data = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: ytdl.extract_info(f"ytsearch5:{query}", download=False)
+                    None, lambda: ytdl.extract_info(f"ytsearch5:{URL}", download=False)
                 )
 
                 if 'entries' not in search_data or not search_data['entries']:
@@ -259,55 +259,120 @@ class MusicBot(commands.Cog):
             f"💸 {interaction.user.display_name}님이 {상대방.display_name}님에게 {금액}원을 송금했습니다.\n"
             f"현재 {interaction.user.display_name}님의 소지금: {user_balances[sender_id]}원"
         )
-        
-    @app_commands.command(name="도박", description="소지금을 걸고 도박을 합니다.")
-    async def 도박(self, interaction: discord.Interaction, 금액: int, 종류: str):
+    
+    
+    
+    # 도박
+    @app_commands.command(name="도박", description="사용 가능한 도박 종류를 알려줍니다.")
+    async def 도박(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "🎲 사용 가능한 도박 종류:\n- 홀짝\n- 꽃도박\n명령어 예시:\n/홀짝 설명\n/꽃도박 설명"
+        )
+
+    @app_commands.command(name="홀짝 설명", description="홀짝 도박에 대한 설명을 제공합니다.")
+    async def 홀짝_설명(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "🎲 홀짝 도박:\n베팅 금액이 홀수면 플레이어의 선택은 자동으로 홀수, 짝수면 짝수로 설정됩니다.\n맞추면 베팅 금액의 2배를 얻습니다."
+        )
+
+    @app_commands.command(name="꽃도박 설명", description="꽃도박에 대한 설명을 제공합니다.")
+    async def 꽃도박_설명(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "🌸 꽃도박:\n5x5 격자에서 일정 확률로 꽃이 생성됩니다.\n꽃의 개수에 따라 배당금이 결정됩니다:\n- 0~1개: 0배\n- 2개: 1배\n- 3개: 1.5배\n- 4개: 0배\n- 5개: 2.5배\n- 6~7개: 5배\n- 8개: 25배"
+        )
+
+    @app_commands.command(name="홀짝", description="홀짝 도박을 실행합니다.")
+    async def 홀짝(self, interaction: discord.Interaction, 베팅_금액: int):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
 
-        if 금액 <= 0:
+        if 베팅_금액 <= 0:
             await interaction.response.send_message("🔴 베팅 금액은 0원 이상이어야 합니다.", ephemeral=True)
             return
 
-        if 금액 > balance:
+        if 베팅_금액 > balance:
             await interaction.response.send_message("🔴 소지금이 부족합니다.", ephemeral=True)
             return
 
-        if 종류 == "꽃도박":
-            grid = [[random.choice(["🌸", "⬜"]) for _ in range(5)] for _ in range(5)]
-            flower_count = sum(row.count("🌸") for row in grid)
-            if flower_count > 10 :
-                multiplier = 1 + flower_count * 0.1
-                winnings = int(금액 * multiplier)
-            else :
-                winnings = 0
-            user_balances[user_id] += winnings - 금액
-            save_balances()
+        # 베팅 금액의 홀짝으로 플레이어 선택 설정
+        player_choice = "홀수" if 베팅_금액 % 2 else "짝수"
+        outcome = random.choice(["홀수", "짝수"])
 
-            grid_display = "\n".join(["".join(row) for row in grid])
-            await interaction.response.send_message(
-                f"꽃이 10개 이하면 배당금을 모두 잃습니다.\n🌸 꽃도박 결과:\n{grid_display}\n🌸 꽃 개수: {flower_count}\n💰 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
-            )
-
-        elif 종류 == "홀짝":
-            outcome = random.choice(["홀수", "짝수"])
-            user_choice = "홀수" if 금액 % 2 else "짝수"
-
-            if user_choice == outcome:
-                winnings = 금액 * 2
-                user_balances[user_id] += winnings - 금액
-                result = "승리"
-            else:
-                user_balances[user_id] -= 금액
-                winnings = 0
-                result = "패배"
-
-            save_balances()
-            await interaction.response.send_message(
-                f"배당금의 홀짝에 따라 플레이어의 선택이 결정됩니다.\n🎲 홀짝 결과: {outcome}\n💰 {result}! 배당금: {winnings}원\n현재 소지금: {user_balances[user_id]}원"
-            )
+        if player_choice == outcome:
+            winnings = 베팅_금액 * 2
+            user_balances[user_id] += winnings - 베팅_금액
+            result = "승리 🎉"
         else:
-            await interaction.response.send_message("🔴 잘못된 도박 종류입니다. (가능한 종류: 꽃도박, 홀짝)", ephemeral=True)
+            user_balances[user_id] -= 베팅_금액
+            winnings = 0
+            result = "패배 ❌"
+
+        save_balances()
+
+        # 깔끔한 출력 메시지 생성
+        message = (
+            f"🎲 **홀짝 도박 결과** 🎲\n"
+            f"🔹 **플레이어의 선택:** {player_choice}\n"
+            f"🔹 **결과:** {outcome}\n"
+            f"🔹 **결과 판정:** {result}\n"
+            f"💰 **배당금:** {winnings}원\n"
+            f"💵 **현재 소지금:** {user_balances[user_id]}원"
+        )
+
+        await interaction.response.send_message(message)
+
+    @app_commands.command(name="꽃도박", description="꽃도박을 실행합니다.")
+    async def 꽃도박(self, interaction: discord.Interaction, 베팅_금액: int):
+        user_id = str(interaction.user.id)
+        balance = user_balances.get(user_id, 0)
+
+        if 베팅_금액 <= 0:
+            await interaction.response.send_message("🔴 베팅 금액은 0원 이상이어야 합니다.", ephemeral=True)
+            return
+
+        if 베팅_금액 > balance:
+            await interaction.response.send_message("🔴 소지금이 부족합니다.", ephemeral=True)
+            return
+
+            # 꽃 개수 계산 (5x5 격자에서 10% 확률로 꽃 생성)
+        grid = [[random.choice(["🌸", "⬜"]) if random.random() < 0.1 else "⬜" for _ in range(5)] for _ in range(5)]
+        flower_count = sum(row.count("🌸") for row in grid)
+
+        multiplier = 0
+        if flower_count == 2:
+            multiplier = 1
+        elif flower_count == 3:
+            multiplier = 1.5
+        elif flower_count == 5:
+            multiplier = 2.5
+        elif 6 <= flower_count <= 7:
+            multiplier = 5
+        elif flower_count == 8:
+            multiplier = 25
+
+        winnings = int(베팅_금액 * multiplier)
+
+        if multiplier == 0:
+            user_balances[user_id] -= 베팅_금액
+            result_message = "🌸 배당금이 없습니다."
+        else:
+            user_balances[user_id] += winnings - 베팅_금액
+            result_message = f"🌸 배당금: {winnings}원"
+
+        save_balances()
+
+        # 격자 출력 메시지 생성
+        grid_display = "\n".join(["".join(row) for row in grid])
+        message = (
+            f"🌸 **꽃도박 결과** 🌸\n"
+            f"🔹 **꽃 격자:**\n{grid_display}\n"
+            f"🔹 **꽃 개수:** {flower_count}\n"
+            f"🔹 **결과:** {result_message}\n"
+            f"💵 **현재 소지금:** {user_balances[user_id]}원"
+        )
+    
+        await interaction.response.send_message(message)
+
 # --------------------------------------------------------------------
 # 봇 초기화
 # --------------------------------------------------------------------
