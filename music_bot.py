@@ -27,9 +27,11 @@ async def on_ready():
 
     # 특정 서버에서 Slash Command 동기화
     synced = await bot.tree.sync(guild=guild)
-    print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}.")
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    print("Bot is ready and online!")
+    try:
+        synced = await bot.tree.sync(guild=guild)
+        print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}.")
+    except Exception as e:
+        print(f"명령어 동기화 중 오류 발생: {e}")
 
 
 async def main():
