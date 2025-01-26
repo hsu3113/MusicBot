@@ -265,6 +265,7 @@ class MusicBot(commands.Cog):
         await interaction.response.send_message(
             f"💸 {interaction.user.display_name}님이 {상대방.display_name}님에게 {금액}원을 송금했습니다.\n"
             f"현재 {interaction.user.display_name}님의 소지금: {user_balances[sender_id]}원"
+            , ephemeral=True
         )
     
     
@@ -273,19 +274,15 @@ class MusicBot(commands.Cog):
     @app_commands.command(name="도박", description="사용 가능한 도박 종류를 알려줍니다.")
     async def 도박(self, interaction: discord.Interaction):
         await interaction.response.send_message(
-            "🎲 사용 가능한 도박 종류:\n- 홀짝\n- 꽃도박\n명령어 예시:\n/홀짝 설명\n/꽃도박 설명"
+            "🎲 사용 가능한 도박 명령어:\n- 홀짝\n- 꽃도박\n- 설명"
+            , ephemeral=True
         )
 
-    @app_commands.command(name="홀짝 설명", description="홀짝 도박에 대한 설명을 제공합니다.")
+    @app_commands.command(name="설명", description="도박에 대한 설명을 제공합니다.")
     async def 홀짝_설명(self, interaction: discord.Interaction):
         await interaction.response.send_message(
-            "🎲 홀짝 도박:\n베팅 금액이 홀수면 플레이어의 선택은 자동으로 홀수, 짝수면 짝수로 설정됩니다.\n맞추면 베팅 금액의 2배를 얻습니다."
-        )
-
-    @app_commands.command(name="꽃도박 설명", description="꽃도박에 대한 설명을 제공합니다.")
-    async def 꽃도박_설명(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            "🌸 꽃도박:\n5x5 격자에서 일정 확률로 꽃이 생성됩니다.\n꽃의 개수에 따라 배당금이 결정됩니다:\n- 0~1개: 0배\n- 2개: 1배\n- 3개: 1.5배\n- 4개: 0배\n- 5개: 2.5배\n- 6~7개: 5배\n- 8개: 25배"
+            f"🎲 홀짝 도박:\n베팅 금액이 홀수면 플레이어의 선택은 자동으로 홀수, 짝수면 짝수로 설정됩니다.\n맞추면 베팅 금액의 2배를 얻습니다."
+            f"\n🌸 꽃도박:\n5x5 격자에서 일정 확률로 꽃이 생성됩니다.\n꽃의 개수에 따라 배당금이 결정됩니다:\n- 0~1개: 0배\n- 2개: 1배\n- 3개: 1.5배\n- 4개: 0배\n- 5개: 2.5배\n- 6~7개: 5배\n- 8개: 25배"
         )
 
     @app_commands.command(name="홀짝", description="홀짝 도박을 실행합니다.")
