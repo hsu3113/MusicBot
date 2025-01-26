@@ -126,7 +126,7 @@ class MusicBot(commands.Cog):
             self.queue.clear()
             print("🔊 음성 채널에서 나갔습니다. 대기열이 초기화되었습니다.")
             
-    @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
+    @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 url로 검색합니다.")
     async def 검색(self, interaction: discord.Interaction, url: str):
         # 음성 채널 연결 여부 확인
         if not interaction.user.voice or not interaction.user.voice.channel:
@@ -146,11 +146,11 @@ class MusicBot(commands.Cog):
             elif voice_client.channel != channel:
                 await voice_client.move_to(channel)
 
-            # URL 또는 검색어 처리
-            if URL.startswith("http"):
+            # url 또는 검색어 처리
+            if url.startswith("http"):
                 try:
                     data = await asyncio.get_event_loop().run_in_executor(
-                        None, lambda: ytdl.extract_info(URL, download=False)
+                        None, lambda: ytdl.extract_info(url, download=False)
                     )
 
                     if 'entries' in data:  # 플레이리스트 처리
@@ -179,12 +179,12 @@ class MusicBot(commands.Cog):
                         await self.play_next(interaction, voice_client)
 
                 except Exception as e:
-                    await interaction.followup.send(f"🔴 URL 처리 중 오류가 발생했습니다: {e}", ephemeral=True)
+                    await interaction.followup.send(f"🔴 url 처리 중 오류가 발생했습니다: {e}", ephemeral=True)
 
             else:
                 # 검색어 처리
                 search_data = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: ytdl.extract_info(f"ytsearch5:{URL}", download=False)
+                    None, lambda: ytdl.extract_info(f"ytsearch5:{url}", download=False)
                 )
 
                 if 'entries' not in search_data or not search_data['entries']:
