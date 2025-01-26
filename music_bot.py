@@ -9,9 +9,16 @@ bot = commands.Bot(command_prefix="/", intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
-    synced = await bot.tree.sync()
-    print(f"Synced {len(synced)} command(s)")
-    print(f"Logged in as {bot.user}")
+    # 특정 서버 ID
+    GUILD_ID = 1332719069081894972  # 테스트할 서버 ID를 입력하세요
+    guild = discord.Object(id=GUILD_ID)
+
+    # 특정 서버에서 Slash Command 동기화
+    synced = await bot.tree.sync(guild=guild)
+    print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}.")
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    print("Bot is ready and online!")
+
 
 
 async def main():
