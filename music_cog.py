@@ -119,7 +119,14 @@ class MusicBot(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
+        
+    async def check_voice_state(self, voice_client):
+        """재생 중인 노래가 없거나 음성 채널에 사용자가 없으면 채널 나가기 및 초기화."""
+        if not voice_client.is_playing() and len(voice_client.channel.members) <= 1:
+            await voice_client.disconnect()
+            self.queue.clear()
+            print("🔊 음성 채널에서 나갔습니다. 대기열이 초기화되었습니다.")
+            
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
     async def 검색(self, interaction: discord.Interaction, URL: str):
         # 음성 채널 연결 여부 확인
@@ -206,8 +213,8 @@ class MusicBot(commands.Cog):
 
             await interaction.channel.send(f"🎵 재생 중: {player.title}")
         else:
-            await voice_client.disconnect()
-            await interaction.channel.send("🎵 대기열이 비었습니다. 음성 채널을 떠납니다.")
+            # 재생할 노래가 없으면 상태 확인 후 채널 나가기
+            await self.check_voice_state(voice_client)
 
     @app_commands.command(name="대기열", description="현재 대기열을 표시합니다.")
     async def 대기열(self, interaction: discord.Interaction):
