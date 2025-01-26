@@ -11,6 +11,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN이 .env 파일에 정의되어 있지 않습니다.")
+print(DISCORD_TOKEN)
 
 # 봇 초기화
 bot = commands.Bot(command_prefix="/", intents=discord.Intents.all())
