@@ -422,7 +422,7 @@ class MusicBot(commands.Cog):
         self.current_vote = {
             "title": title,
             "options": 선택지,
-            "bets": {option: {"total": 0, "users": {}} for option in options},
+            "bets": {option: {"total": 0, "users": {}} for option in 선택지},
             "active": True
         }
     
