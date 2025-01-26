@@ -403,7 +403,7 @@ class MusicBot(commands.Cog):
 
     @commands.command(name="투표시작")
     @commands.has_permissions(administrator=True)  # 관리자 전용
-    async def start_vote(ctx, title: str, *options: str):
+    async def 투표시작(ctx, title: str, *options: str):
         """투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)"""
         if self.current_vote and self.current_vote["active"]:
             await ctx.send("이미 진행 중인 투표가 있습니다! /투표종료 후 다시 시도하세요.")
@@ -426,7 +426,7 @@ class MusicBot(commands.Cog):
         await ctx.send(f"🗳️ 투표가 시작되었습니다!\n**제목**: {title}\n**선택지**:\n{options_text}\n베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요.")
         
     @commands.command(name="베팅")
-    async def place_bet(ctx, option_number: int, amount: int):
+    async def 베팅(ctx, option_number: int, amount: int):
         """베팅을 진행합니다. 사용법: /베팅 선택지번호 금액"""
     
         if not self.current_vote or not self.current_vote["active"]:
@@ -459,7 +459,7 @@ class MusicBot(commands.Cog):
 
     @commands.command(name="투표종료")
     @commands.has_permissions(administrator=True)  # 관리자 전용
-    async def end_vote(self, ctx):
+    async def 투표종료(self, ctx):
         """현재 투표를 종료합니다."""
     
         if not self.current_vote or not self.current_vote["active"]:
