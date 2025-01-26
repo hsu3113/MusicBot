@@ -444,7 +444,7 @@ class MusicBot(commands.Cog):
     async def 베팅(self, interaction: discord.Interaction, 선택지번호: int, 금액: int):
         """베팅을 진행합니다. 사용법: /베팅 선택지번호 금액"""
     
-         await interaction.response.defer()
+        await interaction.response.defer()
 
         if not self.current_vote or not self.current_vote["active"]:
             await interaction.followup.send("현재 진행 중인 투표가 없습니다!")
