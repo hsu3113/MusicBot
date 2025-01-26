@@ -405,41 +405,37 @@ class MusicBot(commands.Cog):
     async def 투표시작(self, interaction: discord.Interaction, 제목: str, 선택1: str, 선택2: str, 선택3: str = None, 선택4: str = None, 선택5: str = None):
         await interaction.response.defer()
         
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
-            return
-
-        if self.current_vote and self.current_vote["active"]:
-            await interaction.followup.send("이미 진행 중인 투표가 있습니다! `/투표종료` 후 다시 시도하세요.")
-            return
-
-        # 선택지 처리
-        options = [선택지1, 선택지2]
-        if 선택지3:
-            options.append(선택지3)
-        if 선택지4:
-            options.append(선택지4)
-        if 선택지5:
-            options.append(선택지5)
+        try:
+            await interaction.response.defer()
+            # 관리자 권한 확인
+            if not interaction.user.guild_permissions.administrator:
+                await interaction.followup.send("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
+                return
     
-        if len(options) > 5:
-            await interaction.followup.send("선택지는 최대 5개까지만 가능합니다.")
-            return
+            # 투표 시작 코드
+            options = [선택1, 선택2]
+            if 선택3:
+                options.append(선택3)
+            if 선택4:
+                options.append(선택4)
+            if 선택5:
+                options.append(선택5)
     
-        # 투표 데이터 초기화
-        self.current_vote = {
-            "title": 제목,
-            "options": options,
-            "bets": {option: {"total": 0, "users": {}} for option in options},
-            "active": True
-        }
+            self.current_vote = {
+                "title": 제목,
+                "options": options,
+                "bets": {option: {"total": 0, "users": {}} for option in options},
+                "active": True
+            }
     
-        # 투표 시작 메시지
-        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
-        await interaction.followup.send(
-            f"🗳️ 투표가 시작되었습니다!\n**제목**: {제목}\n**선택지**:\n{options_text}\n"
-            f"베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요."
-        )
+            options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
+            await interaction.followup.send(
+                f"🗳️ 투표가 시작되었습니다!\n**제목**: {제목}\n**선택지**:\n{options_text}\n"
+                f"베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요."
+            )
+        except Exception as e:
+            await interaction.followup.send(f"🔴 투표 생성 중 오류가 발생했습니다: {e}", ephemeral=True)
+            print(f"[ERROR] 투표시작 오류: {e}")
     
     @app_commands.command(name="베팅", description="선택지에 베팅을 진행합니다.")
     async def 베팅(self, interaction: discord.Interaction, 선택지번호: int, 금액: int):
