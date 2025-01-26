@@ -404,11 +404,12 @@ class MusicBot(commands.Cog):
     @app_commands.command(name="투표시작", description="투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)")
     async def 투표시작(self, interaction: discord.Interaction, 제목: str, 선택1: str, 선택2: str, 선택3: str = None, 선택4: str = None, 선택5: str = None):
         await interaction.response.defer()
+        
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
             return
 
-        if current_vote and current_vote["active"]:
+        if self.current_vote and self.current_vote["active"]:
             await interaction.followup.send("이미 진행 중인 투표가 있습니다! `/투표종료` 후 다시 시도하세요.")
             return
 
@@ -426,7 +427,7 @@ class MusicBot(commands.Cog):
             return
     
         # 투표 데이터 초기화
-        current_vote = {
+        self.current_vote = {
             "title": 제목,
             "options": options,
             "bets": {option: {"total": 0, "users": {}} for option in options},
