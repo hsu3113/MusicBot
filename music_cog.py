@@ -241,7 +241,7 @@ class MusicBot(commands.Cog):
             ])
             await interaction.response.send_message(f"💰 소지금 랭킹:\n{ranking_list}")
 
-     @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
+    @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
     async def 스킵(self, interaction: discord.Interaction):
         voice_client = discord.utils.get(self.bot.voice_clients,
                                          guild=interaction.guild)
