@@ -435,45 +435,60 @@ class MusicBot(commands.Cog):
             await interaction.followup.send(f"🔴 투표 생성 중 오류가 발생했습니다: {e}", ephemeral=True)
             print(f"[ERROR] 투표시작 오류: {e}")
     
-    @app_commands.command(name="베팅", description="선택지에 베팅을 진행합니다.")
+    @app_commands.command(name="베팅", description="베팅을 진행합니다. 사용법: /베팅 선택지번호 금액")
     async def 베팅(self, interaction: discord.Interaction, 선택지번호: int, 금액: int):
-        """베팅을 진행합니다. 사용법: /베팅 선택지번호 금액"""
-    
-        await interaction.response.defer()
-
-        if not self.current_vote or not self.current_vote["active"]:
-            await interaction.followup.send("현재 진행 중인 투표가 없습니다!")
-            return
-    
-        if 선택지번호 < 1 or 선택지번호 > len(self.current_vote["options"]):
-            await interaction.followup.send("유효한 선택지 번호를 입력하세요.")
-            return
-    
-        if 금액 <= 0:
-            await interaction.followup.send("베팅 금액은 1 이상이어야 합니다.")
-            return
-        
-        # 선택지와 사용자 ID 확인
+        """
+        베팅을 진행합니다. 사용법: /베팅 선택지번호 금액
+        """
         user_id = str(interaction.user.id)
-        option = self.current_vote["options"][선택지번호 - 1]
-        
-        # 베팅 금액 추가
-        self.current_vote["bets"][option]["users"][user_id] = self.current_vote["bets"][option]["users"].get(user_id, 0) + 금액
-        self.current_vote["bets"][option]["total"] += 금액
-        
+    
+        # 진행 중인 투표 확인
+        if not self.current_vote or not self.current_vote["active"]:
+            await interaction.response.send_message("현재 진행 중인 투표가 없습니다!", ephemeral=True)
+            return
+    
+        # 선택지 유효성 확인
+        if 선택지번호 < 1 or 선택지번호 > len(self.current_vote["options"]):
+            await interaction.response.send_message("유효한 선택지 번호를 입력하세요.", ephemeral=True)
+            return
+    
+        # 베팅 금액 확인
+        if 금액 <= 0:
+            await interaction.response.send_message("베팅 금액은 1 이상이어야 합니다.", ephemeral=True)
+            return
+    
+        # 사용자의 소지금 확인
+        balance = user_balances.get(user_id, 0)
+        if 금액 > balance:
+            await interaction.response.send_message("🔴 소지금이 부족합니다.", ephemeral=True)
+            return
+    
+        # 선택지 및 사용자 ID 확인
+        선택지 = self.current_vote["options"][선택지번호 - 1]
+    
+        # 소지금 차감
+        user_balances[user_id] = balance - 금액
+        save_balances()
+    
+        # 베팅 데이터 업데이트
+        self.current_vote["bets"][선택지]["users"][user_id] = self.current_vote["bets"][선택지]["users"].get(user_id, 0) + 금액
+        self.current_vote["bets"][선택지]["total"] += 금액
+    
         # 베팅 비율 계산
         total_bets = sum(option_data["total"] for option_data in self.current_vote["bets"].values())
         bet_ratios = {
             opt: round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0
             for opt, data in self.current_vote["bets"].items()
         }
-        
-        # 베팅 상태 메시지
-        await interaction.followup.send(
-            f"✅ {interaction.user.mention}님이 **{option}**에 {금액}원을 베팅했습니다.\n"
+    
+        # 상태 메시지
+        await interaction.response.send_message(
+            f"✅ {interaction.user.mention}님이 **{선택지}**에 {금액}원을 베팅했습니다.\n"
             f"현재 베팅 비율:\n" +
-            "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()])
+            "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]) +
+            f"\n💰 남은 소지금: {user_balances[user_id]}원"
         )
+
     
     @app_commands.command(name="투표종료", description="현재 진행 중인 투표를 종료합니다.")
     async def 투표종료(self, interaction: discord.Interaction, 우승_선택지: str = None):
@@ -487,9 +502,6 @@ class MusicBot(commands.Cog):
         if not self.current_vote or not self.current_vote["active"]:
             await interaction.response.send_message("현재 진행 중인 투표가 없습니다!", ephemeral=True)
             return
-        
-        # 투표 종료 처리
-        self.current_vote["active"] = False
         
         # 최종 결과 계산
         total_bets = sum(option_data["total"] for option_data in self.current_vote["bets"].values())
@@ -507,6 +519,10 @@ class MusicBot(commands.Cog):
         else:
             # 베팅 금액이 가장 높은 선택지를 자동으로 우승으로 설정
             winning_option = max(results, key=lambda x: results[x]["total"])
+        
+        
+        # 투표 종료 처리
+        self.current_vote["active"] = False
         
         # 우승자에게 상금 분배
         winners = self.current_vote["bets"][winning_option]["users"]
