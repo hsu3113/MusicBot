@@ -403,87 +403,110 @@ class MusicBot(commands.Cog):
 
     @app_commands.command(name="투표시작", description="투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)")
     async def 투표시작(self, interaction: discord.Interaction, 제목: str, 선택1: str, 선택2: str, 선택3: str = None, 선택4: str = None, 선택5: str = None):
+        await interaction.response.defer()
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
             return
 
-        선택지 = [선택1, 선택2, 선택3, 선택4, 선택5]
-        선택지 = [선택 for 선택 in 선택지 if 선택]  # None 값을 제거
-        
-        if self.current_vote and self.current_vote["active"]:
-            await ctx.send("이미 진행 중인 투표가 있습니다! /투표종료 후 다시 시도하세요.")
+        if current_vote and current_vote["active"]:
+            await interaction.followup.send("이미 진행 중인 투표가 있습니다! `/투표종료` 후 다시 시도하세요.")
             return
+
+        # 선택지 처리
+        options = [선택지1, 선택지2]
+        if 선택지3:
+            options.append(선택지3)
+        if 선택지4:
+            options.append(선택지4)
+        if 선택지5:
+            options.append(선택지5)
     
-        if len(선택지) > 5:
-            await ctx.send("선택지는 최대 5개까지만 가능합니다.")
+        if len(options) > 5:
+            await interaction.followup.send("선택지는 최대 5개까지만 가능합니다.")
             return
     
         # 투표 데이터 초기화
-        self.current_vote = {
-            "title": title,
-            "options": 선택지,
-            "bets": {option: {"total": 0, "users": {}} for option in 선택지},
+        current_vote = {
+            "title": 제목,
+            "options": options,
+            "bets": {option: {"total": 0, "users": {}} for option in options},
             "active": True
         }
     
         # 투표 시작 메시지
-        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(선택지)])
-        await ctx.send(f"🗳️ 투표가 시작되었습니다!\n**제목**: {title}\n**선택지**:\n{options_text}\n베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요.")
-        
-    @app_commands.command(name="베팅")
-    async def 베팅(ctx, option_number: int, amount: int):
+        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
+        await interaction.followup.send(
+            f"🗳️ 투표가 시작되었습니다!\n**제목**: {제목}\n**선택지**:\n{options_text}\n"
+            f"베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요."
+        )
+    
+    @app_commands.command(name="베팅", description="선택지에 베팅을 진행합니다.")
+    async def 베팅(self, interaction: discord.Interaction, 선택지번호: int, 금액: int):
         """베팅을 진행합니다. 사용법: /베팅 선택지번호 금액"""
     
+         await interaction.response.defer()
+
         if not self.current_vote or not self.current_vote["active"]:
-            await ctx.send("현재 진행 중인 투표가 없습니다!")
-            return
-
-        if option_number < 1 or option_number > len(self.current_vote["options"]):
-            await ctx.send("유효한 선택지 번호를 입력하세요.")
-            return
-
-        if amount <= 0:
-            await ctx.send("베팅 금액은 1 이상이어야 합니다.")
+            await interaction.followup.send("현재 진행 중인 투표가 없습니다!")
             return
     
+        if 선택지번호 < 1 or 선택지번호 > len(self.current_vote["options"]):
+            await interaction.followup.send("유효한 선택지 번호를 입력하세요.")
+            return
+    
+        if 금액 <= 0:
+            await interaction.followup.send("베팅 금액은 1 이상이어야 합니다.")
+            return
+        
         # 선택지와 사용자 ID 확인
-        user_id = str(ctx.author.id)
-        option = self.current_vote["options"][option_number - 1]
-    
+        user_id = str(interaction.user.id)
+        option = self.current_vote["options"][선택지번호 - 1]
+        
         # 베팅 금액 추가
-        self.current_vote["bets"][option]["users"][user_id] = self.current_vote["bets"][option]["users"].get(user_id, 0) + amount
-        self.current_vote["bets"][option]["total"] += amount
-    
+        self.current_vote["bets"][option]["users"][user_id] = self.current_vote["bets"][option]["users"].get(user_id, 0) + 금액
+        self.current_vote["bets"][option]["total"] += 금액
+        
         # 베팅 비율 계산
         total_bets = sum(option_data["total"] for option_data in self.current_vote["bets"].values())
-        bet_ratios = {opt: round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0 for opt, data in self.current_vote["bets"].items()}
-    
+        bet_ratios = {
+            opt: round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0
+            for opt, data in self.current_vote["bets"].items()
+        }
+        
         # 베팅 상태 메시지
-        await ctx.send(f"✅ {ctx.author.mention}님이 **{option}**에 {amount}원을 베팅했습니다.\n현재 베팅 비율:\n" +
-                       "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]))
-
-    @app_commands.command(name="투표종료")
+        await interaction.followup.send(
+            f"✅ {interaction.user.mention}님이 **{option}**에 {금액}원을 베팅했습니다.\n"
+            f"현재 베팅 비율:\n" +
+            "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()])
+        )
+    
+    @app_commands.command(name="투표종료", description="현재 진행 중인 투표를 종료합니다.")
     async def 투표종료(self, interaction: discord.Interaction):
         """현재 투표를 종료합니다."""
+        
+        # 관리자 권한 확인
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
             return
-        if not self.current_vote or not self.current_vote["active"]:
-            await ctx.send("현재 진행 중인 투표가 없습니다!")
-            return
     
+        if not self.current_vote or not self.current_vote["active"]:
+            await interaction.response.send_message("현재 진행 중인 투표가 없습니다!", ephemeral=True)
+            return
+        
         # 투표 종료 처리
         self.current_vote["active"] = False
-    
+        
         # 최종 결과 계산
         total_bets = sum(option_data["total"] for option_data in self.current_vote["bets"].values())
-        results = {opt: {"total": data["total"], "ratio": round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0}
-                   for opt, data in self.current_vote["bets"].items()}
-    
-        # 결과 메시지
+        results = {
+            opt: {"total": data["total"], "ratio": round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0}
+            for opt, data in self.current_vote["bets"].items()
+        }
+        
+        # 결과 메시지 생성
         result_text = "\n".join([f"{opt}: {data['total']}원 ({data['ratio']}%)" for opt, data in results.items()])
-        await ctx.send(f"🛑 투표가 종료되었습니다!\n**결과**:\n{result_text}")
-    
+        await interaction.response.send_message(f"🛑 투표가 종료되었습니다!\n**결과**:\n{result_text}")
+        
         # 투표 데이터 초기화
         self.current_vote = None
 
