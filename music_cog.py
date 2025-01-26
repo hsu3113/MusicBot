@@ -476,7 +476,7 @@ class MusicBot(commands.Cog):
         )
     
     @app_commands.command(name="투표종료", description="현재 진행 중인 투표를 종료합니다.")
-    async def 투표종료(self, interaction: discord.Interaction):
+    async def 투표종료(self, interaction: discord.Interaction, 우승_선택지: str = None):
         """현재 투표를 종료합니다."""
         
         # 관리자 권한 확인
@@ -497,15 +497,38 @@ class MusicBot(commands.Cog):
             opt: {"total": data["total"], "ratio": round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0}
             for opt, data in self.current_vote["bets"].items()
         }
+    
+        # 우승 선택지 설정
+        if 우승_선택지:
+            if 우승_선택지 not in self.current_vote["options"]:
+                await interaction.response.send_message(f"🔴 '{우승_선택지}'는 유효한 선택지가 아닙니다. 유효한 선택지: {', '.join(self.current_vote['options'])}", ephemeral=True)
+                return
+            winning_option = 우승_선택지
+        else:
+            # 베팅 금액이 가장 높은 선택지를 자동으로 우승으로 설정
+            winning_option = max(results, key=lambda x: results[x]["total"])
         
+        # 우승자에게 상금 분배
+        winners = self.current_vote["bets"][winning_option]["users"]
+        total_bet_on_winner = self.current_vote["bets"][winning_option]["total"]
+        payout_message = "💸 **우승자 배당금:**\n"
+    
+        for user_id, bet_amount in winners.items():
+            payout_ratio = bet_amount / total_bet_on_winner
+            winnings = int(total_bets * payout_ratio)
+            user_balances[user_id] = user_balances.get(user_id, 0) + winnings
+            payout_message += f"<@{user_id}>: +{winnings}원 (베팅: {bet_amount}원)\n"
+    
+        save_balances()
+    
         # 결과 메시지 생성
         result_text = "\n".join([f"{opt}: {data['total']}원 ({data['ratio']}%)" for opt, data in results.items()])
-        await interaction.response.send_message(f"🛑 투표가 종료되었습니다!\n**결과**:\n{result_text}")
+        await interaction.response.send_message(
+            f"🛑 투표가 종료되었습니다!\n**결과**:\n{result_text}\n\n**우승 선택지:** {winning_option}\n\n{payout_message}"
+        )
         
         # 투표 데이터 초기화
         self.current_vote = None
-
-
 
 # --------------------------------------------------------------------
 # 봇 초기화
