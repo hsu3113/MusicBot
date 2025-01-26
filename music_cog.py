@@ -463,7 +463,7 @@ class MusicBot(commands.Cog):
                        "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]))
 
     @app_commands.command(name="투표종료")
-    async def 투표종료(self, interaction: discord.Interaction, ctx):
+    async def 투표종료(self, interaction: discord.Interaction):
         """현재 투표를 종료합니다."""
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
