@@ -241,6 +241,30 @@ class MusicBot(commands.Cog):
             ])
             await interaction.response.send_message(f"💰 소지금 랭킹:\n{ranking_list}")
 
+     @app_commands.command(name="스킵", description="현재 재생 중인 곡을 건너뜁니다.")
+    async def 스킵(self, interaction: discord.Interaction):
+        voice_client = discord.utils.get(self.bot.voice_clients,
+                                         guild=interaction.guild)
+
+        if voice_client and voice_client.is_playing():
+            voice_client.stop()
+            await interaction.response.send_message("🎵 현재 곡을 건너뜁니다.")
+        else:
+            await interaction.response.send_message("재생 중인 곡이 없습니다.",
+                                                    ephemeral=True)
+
+    @app_commands.command(name="종료", description="재생을 멈추고 음성 채널에서 봇을 퇴장시킵니다.")
+    async def 종료(self, interaction: discord.Interaction):
+        voice_client = discord.utils.get(self.bot.voice_clients,
+                                         guild=interaction.guild)
+
+        if voice_client and voice_client.is_connected():
+            await voice_client.disconnect()
+            await interaction.response.send_message("음악을 멈추고 봇이 퇴장했습니다.")
+        else:
+            await interaction.response.send_message("봇이 음성 채널에 있지 않습니다.",
+                                                    ephemeral=True)
+    
     @app_commands.command(name="송금", description="다른 사용자에게 소지금을 송금합니다.")
     async def 송금(self, interaction: discord.Interaction, 상대방: discord.Member, 금액: int):
         sender_id = str(interaction.user.id)
@@ -375,6 +399,92 @@ class MusicBot(commands.Cog):
         )
     
         await interaction.response.send_message(message)
+
+    @commands.command(name="투표시작")
+    @commands.has_permissions(administrator=True)  # 관리자 전용
+    async def start_vote(ctx, title: str, *options: str):
+        """투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)"""
+        global current_vote
+    
+        if current_vote and current_vote["active"]:
+            await ctx.send("이미 진행 중인 투표가 있습니다! /투표종료 후 다시 시도하세요.")
+            return
+    
+        if len(options) > 5:
+            await ctx.send("선택지는 최대 5개까지만 가능합니다.")
+            return
+    
+        # 투표 데이터 초기화
+        current_vote = {
+            "title": title,
+            "options": list(options),
+            "bets": {option: {"total": 0, "users": {}} for option in options},
+            "active": True
+        }
+    
+        # 투표 시작 메시지
+        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
+        await ctx.send(f"🗳️ 투표가 시작되었습니다!\n**제목**: {title}\n**선택지**:\n{options_text}\n베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요.")
+        
+    @commands.command(name="베팅")
+    async def place_bet(ctx, option_number: int, amount: int):
+        """베팅을 진행합니다. 사용법: /베팅 선택지번호 금액"""
+        global current_vote
+    
+        if not current_vote or not current_vote["active"]:
+            await ctx.send("현재 진행 중인 투표가 없습니다!")
+            return
+    
+        if option_number < 1 or option_number > len(current_vote["options"]):
+            await ctx.send("유효한 선택지 번호를 입력하세요.")
+            return
+    
+        if amount <= 0:
+            await ctx.send("베팅 금액은 1 이상이어야 합니다.")
+            return
+    
+        # 선택지와 사용자 ID 확인
+        user_id = str(ctx.author.id)
+        option = current_vote["options"][option_number - 1]
+    
+        # 베팅 금액 추가
+        current_vote["bets"][option]["users"][user_id] = current_vote["bets"][option]["users"].get(user_id, 0) + amount
+        current_vote["bets"][option]["total"] += amount
+    
+        # 베팅 비율 계산
+        total_bets = sum(option_data["total"] for option_data in current_vote["bets"].values())
+        bet_ratios = {opt: round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0 for opt, data in current_vote["bets"].items()}
+    
+        # 베팅 상태 메시지
+        await ctx.send(f"✅ {ctx.author.mention}님이 **{option}**에 {amount}원을 베팅했습니다.\n현재 베팅 비율:\n" +
+                       "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]))
+
+    @commands.command(name="투표종료")
+    @commands.has_permissions(administrator=True)  # 관리자 전용
+    async def end_vote(ctx):
+        """현재 투표를 종료합니다."""
+        global current_vote
+    
+        if not current_vote or not current_vote["active"]:
+            await ctx.send("현재 진행 중인 투표가 없습니다!")
+            return
+    
+        # 투표 종료 처리
+        current_vote["active"] = False
+    
+        # 최종 결과 계산
+        total_bets = sum(option_data["total"] for option_data in current_vote["bets"].values())
+        results = {opt: {"total": data["total"], "ratio": round((data["total"] / total_bets) * 100, 2) if total_bets > 0 else 0}
+                   for opt, data in current_vote["bets"].items()}
+    
+        # 결과 메시지
+        result_text = "\n".join([f"{opt}: {data['total']}원 ({data['ratio']}%)" for opt, data in results.items()])
+        await ctx.send(f"🛑 투표가 종료되었습니다!\n**결과**:\n{result_text}")
+    
+        # 투표 데이터 초기화
+        current_vote = None
+
+
 
 # --------------------------------------------------------------------
 # 봇 초기화
