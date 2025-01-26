@@ -127,7 +127,6 @@ class MusicBot(commands.Cog):
             print("🔊 음성 채널에서 나갔습니다. 대기열이 초기화되었습니다.")
             
     @app_commands.command(name="검색", description="음악을 재생하거나 노래 제목 또는 URL로 검색합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 검색(self, interaction: discord.Interaction, URL: str):
         # 음성 채널 연결 여부 확인
         if not interaction.user.voice or not interaction.user.voice.channel:
