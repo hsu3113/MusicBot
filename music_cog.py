@@ -401,8 +401,8 @@ class MusicBot(commands.Cog):
     
         await interaction.response.send_message(message)
 
-    @commands.command(name="투표시작")
-    @commands.has_permissions(administrator=True)  # 관리자 전용
+    @app_commands.command(name="투표시작")
+    @app_commands.has_permissions(administrator=True)  # 관리자 전용
     async def 투표시작(ctx, title: str, *options: str):
         """투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)"""
         if self.current_vote and self.current_vote["active"]:
@@ -425,7 +425,7 @@ class MusicBot(commands.Cog):
         options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
         await ctx.send(f"🗳️ 투표가 시작되었습니다!\n**제목**: {title}\n**선택지**:\n{options_text}\n베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요.")
         
-    @commands.command(name="베팅")
+    @app_commands.command(name="베팅")
     async def 베팅(ctx, option_number: int, amount: int):
         """베팅을 진행합니다. 사용법: /베팅 선택지번호 금액"""
     
@@ -457,8 +457,8 @@ class MusicBot(commands.Cog):
         await ctx.send(f"✅ {ctx.author.mention}님이 **{option}**에 {amount}원을 베팅했습니다.\n현재 베팅 비율:\n" +
                        "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]))
 
-    @commands.command(name="투표종료")
-    @commands.has_permissions(administrator=True)  # 관리자 전용
+    @app_commands.command(name="투표종료")
+    @app_commands.has_permissions(administrator=True)  # 관리자 전용
     async def 투표종료(self, ctx):
         """현재 투표를 종료합니다."""
     
