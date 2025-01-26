@@ -405,8 +405,7 @@ class MusicBot(commands.Cog):
     @commands.has_permissions(administrator=True)  # 관리자 전용
     async def start_vote(ctx, title: str, *options: str):
         """투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)"""
-    
-         if self.current_vote and self.current_vote["active"]:
+        if self.current_vote and self.current_vote["active"]:
             await ctx.send("이미 진행 중인 투표가 있습니다! /투표종료 후 다시 시도하세요.")
             return
     
