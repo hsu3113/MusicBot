@@ -283,7 +283,6 @@ class MusicBot(commands.Cog):
         )
 
     @app_commands.command(name="설명", description="도박에 대한 설명을 제공합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 홀짝_설명(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             f"🎲 홀짝 도박:\n베팅 금액이 홀수면 플레이어의 선택은 자동으로 홀수, 짝수면 짝수로 설정됩니다.\n맞추면 베팅 금액의 2배를 얻습니다."
@@ -291,7 +290,6 @@ class MusicBot(commands.Cog):
         )
 
     @app_commands.command(name="홀짝", description="홀짝 도박을 실행합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 홀짝(self, interaction: discord.Interaction, 베팅_금액: int):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
@@ -332,7 +330,6 @@ class MusicBot(commands.Cog):
         await interaction.response.send_message(message)
 
     @app_commands.command(name="꽃도박", description="꽃도박을 실행합니다.")
-    @app_commands.guilds(discord.Object(id=629171925976875009))
     async def 꽃도박(self, interaction: discord.Interaction, 베팅_금액: int):
         user_id = str(interaction.user.id)
         balance = user_balances.get(user_id, 0)
