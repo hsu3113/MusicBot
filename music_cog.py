@@ -402,7 +402,7 @@ class MusicBot(commands.Cog):
         await interaction.response.send_message(message)
 
     @app_commands.command(name="투표시작", description="투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)")
-   async def 투표시작(self, interaction: discord.Interaction, 제목: str, *선택지: str):
+    async def 투표시작(self, interaction: discord.Interaction, 제목: str, *선택지: str):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
             return
