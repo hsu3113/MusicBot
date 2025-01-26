@@ -402,28 +402,32 @@ class MusicBot(commands.Cog):
         await interaction.response.send_message(message)
 
     @app_commands.command(name="투표시작", description="투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)")
-    async def 투표시작(self, interaction: discord.Interaction, 제목: str, *선택지: str):
+    async def 투표시작(self, interaction: discord.Interaction, 제목: str, 선택1: str, 선택2: str, 선택3: str = None, 선택4: str = None, 선택5: str = None):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
             return
+
+        선택지 = [선택1, 선택2, 선택3, 선택4, 선택5]
+        선택지 = [선택 for 선택 in 선택지 if 선택]  # None 값을 제거
+        
         if self.current_vote and self.current_vote["active"]:
             await ctx.send("이미 진행 중인 투표가 있습니다! /투표종료 후 다시 시도하세요.")
             return
     
-        if len(options) > 5:
+        if len(선택지) > 5:
             await ctx.send("선택지는 최대 5개까지만 가능합니다.")
             return
     
         # 투표 데이터 초기화
         self.current_vote = {
             "title": title,
-            "options": list(options),
+            "options": 선택지,
             "bets": {option: {"total": 0, "users": {}} for option in options},
             "active": True
         }
     
         # 투표 시작 메시지
-        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
+        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(선택지)])
         await ctx.send(f"🗳️ 투표가 시작되었습니다!\n**제목**: {title}\n**선택지**:\n{options_text}\n베팅하려면 `/베팅 <선택지번호> <금액>`을 사용하세요.")
         
     @app_commands.command(name="베팅")
