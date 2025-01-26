@@ -401,10 +401,11 @@ class MusicBot(commands.Cog):
     
         await interaction.response.send_message(message)
 
-    @app_commands.command(name="투표시작")
-    @has_permissions(administrator=True)  # 관리자 전용
-    async def 투표시작(ctx, title: str, *options: str):
-        """투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)"""
+    @app_commands.command(name="투표시작", description="투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)")
+   async def 투표시작(self, interaction: discord.Interaction, 제목: str, *선택지: str):
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
+            return
         if self.current_vote and self.current_vote["active"]:
             await ctx.send("이미 진행 중인 투표가 있습니다! /투표종료 후 다시 시도하세요.")
             return
@@ -458,10 +459,11 @@ class MusicBot(commands.Cog):
                        "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]))
 
     @app_commands.command(name="투표종료")
-    @has_permissions(administrator=True)  # 관리자 전용
-    async def 투표종료(self, ctx):
+    async def 투표종료(self, interaction: discord.Interaction, ctx):
         """현재 투표를 종료합니다."""
-    
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("🔴 이 명령어를 실행하려면 관리자 권한이 필요합니다.", ephemeral=True)
+            return
         if not self.current_vote or not self.current_vote["active"]:
             await ctx.send("현재 진행 중인 투표가 없습니다!")
             return
