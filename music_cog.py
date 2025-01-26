@@ -402,7 +402,7 @@ class MusicBot(commands.Cog):
         await interaction.response.send_message(message)
 
     @app_commands.command(name="투표시작")
-    @app_commands.has_permissions(administrator=True)  # 관리자 전용
+    @has_permissions(administrator=True)  # 관리자 전용
     async def 투표시작(ctx, title: str, *options: str):
         """투표를 시작합니다. 사용법: /투표시작 제목 선택지1 선택지2 ... (최대 5개)"""
         if self.current_vote and self.current_vote["active"]:
@@ -458,7 +458,7 @@ class MusicBot(commands.Cog):
                        "\n".join([f"{opt}: {ratio}%" for opt, ratio in bet_ratios.items()]))
 
     @app_commands.command(name="투표종료")
-    @app_commands.has_permissions(administrator=True)  # 관리자 전용
+    @has_permissions(administrator=True)  # 관리자 전용
     async def 투표종료(self, ctx):
         """현재 투표를 종료합니다."""
     
