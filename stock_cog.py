@@ -29,7 +29,22 @@ class StockMarket(commands.Cog):
         self.load_data()  # 초기 데이터 로드
         self.price_updater.start()  # 주기적인 주식 가격 업데이트
         self.daily_update.start()  # 매일 새로운 주식 추가 및 정리
+    
+    def stop_tasks(self):
+        """모든 tasks.loop를 안전하게 종료."""
+        if self.price_updater.is_running():
+            self.price_updater.cancel()
+            print("🛑 price_updater를 종료하였습니다.")
+            
+        if self.daily_update.is_running():
+            self.daily_update.cancel()
+            print("🛑 daily_update를 종료하였습니다.")
 
+    async def cog_unload(self):
+        """Cog가 언로드될 때 호출."""
+        self.stop_tasks()
+        print("🛑 Cog unloaded and tasks stopped.")
+        
     # ----------------------------------------------------------------
     # 데이터 로드 및 저장
     # ----------------------------------------------------------------
@@ -57,7 +72,7 @@ class StockMarket(commands.Cog):
     # ----------------------------------------------------------------
     # 주식 가격 업데이트 (10분 간격)
     # ----------------------------------------------------------------
-    @tasks.loop(minutes=10)
+    @tasks.loop(minutes=1)
     async def price_updater(self):
         """10분마다 주식 가격을 업데이트합니다."""
         price_changes = {}  # 주식별 가격 변동 기록
@@ -95,6 +110,11 @@ class StockMarket(commands.Cog):
             await channel.send(embed=embed)
         else:
             print("⚠️ 채널을 찾을 수 없습니다.")
+    
+    @price_updater.before_loop
+    async def before_price_updater(self):
+        """봇이 준비되기를 기다립니다."""
+        await self.bot.wait_until_ready()
 
     # ----------------------------------------------------------------
     # 매일 주식 정리 및 신규 추가 (24시간 간격)
@@ -136,6 +156,11 @@ class StockMarket(commands.Cog):
             )
             await channel.send(embed=embed)
 
+    @daily_update.before_loop
+    async def before_price_updater(self):
+        """봇이 준비되기를 기다립니다."""
+        await self.bot.wait_until_ready()
+        
     def generate_random_stock_name(self):
         """무작위로 4글자 주식 이름을 생성합니다."""
         letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

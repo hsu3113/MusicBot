@@ -20,11 +20,31 @@ print("✅ DISCORD_TOKEN이 로드되었습니다.")
 # --------------------------------------------------------------------
 # Discord 봇의 권한 설정 (애플리케이션 명령어 및 메시지 내용 접근 허용)
 intents = discord.Intents.default()
-intents.application_commands = True  # 슬래시 명령어 사용 허용
 intents.message_content = True  # 메시지 내용 접근 허용 (필요한 경우 활성화)
 
 # 봇 인스턴스 생성
 bot = commands.Bot(command_prefix="/", intents=intents)
+
+# --------------------------------------------------------------------
+# 리로드 명령어
+# --------------------------------------------------------------------
+@bot.command(name="리로드", help="특정 코그를 다시 로드합니다.")
+@commands.is_owner()  # 봇 소유자만 사용 가능
+async def reload_cog(ctx, cog_name: str):
+    """특정 코그를 다시 로드합니다."""
+    try:
+        await bot.reload_extension(cog_name)  # 코그 리로드
+        await ctx.send(f"✅ **{cog_name}** 코그가 성공적으로 다시 로드되었습니다.")
+        print(f"✅ {cog_name} 코그가 다시 로드되었습니다.")
+    except commands.ExtensionNotLoaded:
+        await ctx.send(f"⚠️ **{cog_name}** 코그가 로드되지 않았습니다.")
+        print(f"⚠️ {cog_name} 코그가 로드되지 않았습니다.")
+    except commands.ExtensionNotFound:
+        await ctx.send(f"⚠️ **{cog_name}** 코그를 찾을 수 없습니다.")
+        print(f"⚠️ {cog_name} 코그를 찾을 수 없습니다.")
+    except Exception as e:
+        await ctx.send(f"❌ 코그를 다시 로드하는 중 오류가 발생했습니다: {e}")
+        print(f"❌ 코그 로드 중 오류 발생: {e}")
 
 # --------------------------------------------------------------------
 # 봇 이벤트: on_ready
