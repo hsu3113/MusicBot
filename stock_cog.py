@@ -72,7 +72,7 @@ class StockMarket(commands.Cog):
     # ----------------------------------------------------------------
     # 주식 가격 업데이트 (10분 간격)
     # ----------------------------------------------------------------
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=10)
     async def price_updater(self):
         """10분마다 주식 가격을 업데이트합니다."""
         price_changes = {}  # 주식별 가격 변동 기록
@@ -82,9 +82,9 @@ class StockMarket(commands.Cog):
 
             # 50% 확률로 가격 상승 또는 하락
             if random.random() < 0.5:
-                change_percentage = random.uniform(0, 50)  # 0% ~ 50% 상승
+                change_percentage = random.uniform(0, 100)  # 0% ~ 50% 상승
             else:
-                change_percentage = random.uniform(-30, 0)  # -30% ~ 0% 하락
+                change_percentage = random.uniform(-50, 0)  # -30% ~ 0% 하락
                 
             new_price = max(int(current_price * (1 + change_percentage / 100)), 1)  # 최소 가격 1원
             self.stocks[stock] = new_price
