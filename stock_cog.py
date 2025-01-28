@@ -82,11 +82,11 @@ class StockMarket(commands.Cog):
 
             # 50% 확률로 가격 상승 또는 하락
             if random.random() < 0.5:
-                change_percentage = random.uniform(0, 50)  # 0% ~ 50% 상승
+                add_amount = random.uniform(0, 100)  # 0% ~ 50% 상승
             else:
-                change_percentage = random.uniform(-30, 0)  # -30% ~ 0% 하락
+                add_amount = random.uniform(-100, 0)  # -30% ~ 0% 하락
                 
-            new_price = max(int(current_price * (1 + change_percentage / 100)), 1)  # 최소 가격 1원
+            new_price = max(int(current_price + add_amount), 1)  # 최소 가격 1원
             self.stocks[stock] = new_price
             price_changes[stock] = (current_price, new_price)
 
