@@ -89,6 +89,16 @@ class StockMarket(commands.Cog):
             new_price = max(int(current_price + add_amount), 1)  # 최소 가격 1원
             self.stocks[stock] = new_price
             price_changes[stock] = (current_price, new_price)
+            
+        # 상장폐지 처리 (가격이 10원 이하인 주식)
+        delisted_stocks = [stock for stock, price in self.stocks.items() if price <= 1]
+        for stock in delisted_stocks:
+            del self.stocks[stock]
+        
+        if delisted_stocks:
+            embed.add_field(name="📉 상장폐지 주식", value="\n".join(delisted_stocks), inline=False)
+        else:
+            embed.add_field(name="📉 상장폐지 주식", value="없음", inline=False)
 
         self.save_data()  # 데이터 저장
 
@@ -122,10 +132,6 @@ class StockMarket(commands.Cog):
     @tasks.loop(hours=24)
     async def daily_update(self):
         """매일 주식을 정리하고 새로운 주식을 추가합니다."""
-        # 상장폐지 처리 (가격이 10원 이하인 주식)
-        delisted_stocks = [stock for stock, price in self.stocks.items() if price <= 10]
-        for stock in delisted_stocks:
-            del self.stocks[stock]
 
         # 평균 가격 계산
         average_price = sum(self.stocks.values()) / len(self.stocks) if self.stocks else 100
@@ -144,14 +150,9 @@ class StockMarket(commands.Cog):
         channel = self.bot.get_channel(DISCORD_CHANNEL_ID)
         if channel:
             embed = discord.Embed(title="📈 주식 시장 업데이트", color=discord.Color.green())
-            if delisted_stocks:
-                embed.add_field(name="📉 상장폐지 주식", value="\n".join(delisted_stocks), inline=False)
-            else:
-                embed.add_field(name="📉 상장폐지 주식", value="없음", inline=False)
-            new_stocks = [stock for stock in self.stocks if stock not in delisted_stocks]
             embed.add_field(
                 name="📈 신규 상장 주식",
-                value="\n".join(f"{stock}: {self.stocks[stock]}원" for stock in new_stocks),
+                value="\n".join(f"{new_stock}: {self.stocks[new_stock]}원"),
                 inline=False,
             )
             await channel.send(embed=embed)
