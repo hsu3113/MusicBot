@@ -95,10 +95,6 @@ class StockMarket(commands.Cog):
         for stock in delisted_stocks:
             del self.stocks[stock]
         
-        if delisted_stocks:
-            embed.add_field(name="📉 상장폐지 주식", value="\n".join(delisted_stocks), inline=False)
-        else:
-            embed.add_field(name="📉 상장폐지 주식", value="없음", inline=False)
 
         self.save_data()  # 데이터 저장
 
@@ -117,6 +113,11 @@ class StockMarket(commands.Cog):
                     value=f"{change_emoji} {old_price}원 → {new_price}원 ({percentage_change:+.2f}%)",
                     inline=False,
                 )
+                    
+            if delisted_stocks:
+                embed.add_field(name="📉 상장폐지 주식", value="\n".join(delisted_stocks), inline=False)
+            else:
+                embed.add_field(name="📉 상장폐지 주식", value="없음", inline=False)
             await channel.send(embed=embed)
         else:
             print("⚠️ 채널을 찾을 수 없습니다.")
