@@ -151,11 +151,7 @@ class StockMarket(commands.Cog):
         channel = self.bot.get_channel(DISCORD_CHANNEL_ID)
         if channel:
             embed = discord.Embed(title="📈 주식 시장 업데이트", color=discord.Color.green())
-            embed.add_field(
-                name="📈 신규 상장 주식",
-                value="\n".join(f"{new_stock}: {self.stocks[new_stock]}원"),
-                inline=False,
-            )
+            embed.add_field(name="📈 신규 주식", value=f"{new_stock}: {self.stocks[new_stock]}원", inline=False)
             await channel.send(embed=embed)
 
     @daily_update.before_loop
